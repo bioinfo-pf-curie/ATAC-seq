@@ -16,17 +16,20 @@ function help {
     echo "   -d DESIGN"
     echo "   -a ALIGNER"
     echo "   [-p]: paired-end mode"
+    echo "   [-m]: Mitochondrial chromosome name"
     echo "   [-h]: help"
     exit;
 }
 
 is_pe=0
-while getopts "s:d:a:ph" OPT
+mito_name="chrM"
+while getopts "s:d:a:m:ph" OPT
 do
     case $OPT in
         s) splan=$OPTARG;;
 	d) design=$OPTARG;;
 	a) aligner=$OPTARG;;
+	m) mito_name=$OPTARG;;
 	p) is_pe=1;;
 	h) help ;;
 	\?)
@@ -49,7 +52,7 @@ fi
 
 all_samples=$(awk -F, '{print $1}' $splan)
 
-echo -e "Sample_ID,Sample_name,Number_of_reads,Fragment_length,Number_of_aligned_reads,Percent_of_aligned_reads,Number_of_hq_mapped_reads,Percent_of_hq_mapped_reads,Number_of_lq_mapped_reads,Percent_of_lq_mapped_reads,Number_of_duplicates,Percent_of_duplicates,Normalized_strand_correlation,Relative_strand_correlation,Fraction_of_reads_in_peaks" > mqc.stats
+echo -e "Sample_ID,Sample_name,Number_of_reads,Number_of_aligned_reads,Percent_of_aligned_reads,Number_of_mito,Percent_of_mito,Number_of_hq_mapped_reads,Percent_of_hq_mapped_reads,Number_of_lq_mapped_reads,Percent_of_lq_mapped_reads,Number_of_duplicates,Percent_of_duplicates,Fraction_of_reads_in_peaks" > mqc.stats
 
 for sample in $all_samples
 do
@@ -91,6 +94,15 @@ do
     perc_mapped_hq=$(echo "${nb_mapped_hq} ${nb_reads}" | awk ' { printf "%.*f",2,$1*100/$2 } ')
     perc_mapped_lq=$(echo "${nb_mapped_lq} ${nb_reads}" | awk ' { printf "%.*f",2,$1*100/$2 } ')
 
+    ##MITO
+    if [[ -e mapping/stats/${sample}_raw.idxstats ]]; then
+	nb_mito=$(awk -v mt=${mito_name} '$1==mt{print $3}' mapping/stats/${sample}_raw.idxstats)
+	perc_mito=$(echo "${nb_mito} ${nb_mapped}" | awk ' { printf "%.*f",2,$1*100/$2 } ')
+    else
+	nb_mito='NA'
+	perc_mito='NA'
+    fi
+
     #PICARD
     if [[ -e mapping/${sample}.MarkDuplicates.metrics.txt ]]; then
 	nb_dups_pair=$(grep -a2 "## METRICS" mapping/${sample}.MarkDuplicates.metrics.txt | tail -1 | awk -F"\t" '{print $7}')
@@ -101,17 +113,6 @@ do
     else
 	nb_dups='NA'
 	perc_dups='NA'
-    fi
-
-    #PPQT
-    if [[ -e ppqt/${sample}.spp.out && -e ppqt/${sample}_spp_nsc_mqc.tsv ]]; then
-	frag_length=$(awk '{print $3}' ppqt/${sample}.spp.out | sed 's/,.*//')
-	nsc=$(grep "$sample" ppqt/${sample}_spp_nsc_mqc.tsv | awk '{print $2}')  
-	rsc=$(grep "$sample" ppqt/${sample}_spp_rsc_mqc.tsv | awk '{print $2}')
-    else
-	frag_length='NA'
-	nsc='NA'
-	rsc='NA'
     fi
 
     #PeakCalling 
@@ -128,6 +129,6 @@ do
     fi
 
     #To file
-    echo -e ${sample},${sname},${nb_frag},${frag_length},${nb_mapped},${perc_mapped},${nb_mapped_hq},${perc_mapped_hq},${nb_mapped_lq},${perc_mapped_lq},${nb_dups},${perc_dups},${nsc},${rsc},${frip} >> mqc.stats
+    echo -e ${sample},${sname},${nb_frag},${nb_mapped},${perc_mapped},${nb_mito},${perc_mito},${nb_mapped_hq},${perc_mapped_hq},${nb_mapped_lq},${perc_mapped_lq},${nb_dups},${perc_dups},${frip} >> mqc.stats
 done
 

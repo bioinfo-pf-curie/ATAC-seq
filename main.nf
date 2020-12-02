@@ -397,7 +397,7 @@ if(params.samplePlan){
 if (params.samplePlan){
   Channel
     .fromPath(params.samplePlan)
-    .set { chSplanCheck }
+    .into { chSplan; chSplanCheck }
 }else if(params.readPaths){
   if (params.singleEnd){
     Channel
@@ -405,14 +405,14 @@ if (params.samplePlan){
        .collectFile() {
          item -> ["sample_plan.csv", item[0] + ',' + item[0] + ',' + item[1][0] + '\n']
         }
-       .set { chSplanCheck }
+       .into { chSplan; chSplanCheck }
   }else{
      Channel
        .from(params.readPaths)
        .collectFile() {
          item -> ["sample_plan.csv", item[0] + ',' + item[0] + ',' + item[1][0] + ',' + item[1][1] + '\n']
         }
-       .set { chSplanCheck }
+       .into { chSplan; chSplanCheck }
   }
 } else if(params.bamPaths){
   Channel
@@ -420,7 +420,7 @@ if (params.samplePlan){
      .collectFile() {
        item -> ["sample_plan.csv", item[0] + ',' + item[0] + ',' + item[1][0] + '\n']
       }
-     .set { chSplanCheck }
+     .into { chSplan; chSplanCheck }
   params.aligner = false
 } else {
   if (params.singleEnd){
@@ -429,14 +429,14 @@ if (params.samplePlan){
        .collectFile() {
           item -> ["sample_plan.csv", item[0] + ',' + item[0] + ',' + item[1][0] + '\n']
        }     
-       .set { chSplanCheck }
+       .into { chSplan; chSplanCheck }
   }else{
     Channel
        .fromFilePairs( params.reads, size: 2 )
        .collectFile() {
           item -> ["sample_plan.csv", item[0] + ',' + item[0] + ',' + item[1][0] + ',' + item[1][1] + '\n']
        }     
-       .set { chSplanCheck }
+       .into { chSplan; chSplanCheck }
    }
 }
 
@@ -468,10 +468,6 @@ if (params.design){
   chDesignCheck = Channel.empty()
   chDesignMqc = Channel.empty()
 }
-
-
-
-//if (params.design)     { chInput = file(params.design, checkIfExists: true) } else { exit 1, 'Samples design file not specified!' }
 
 process checkDesign {
     tag "$design"
@@ -855,7 +851,7 @@ process getFragmentSize {
   set val(prefix), file(filteredBam) from chBamsFragSize
 
   output:
-  set val(prefix), file("*histogram.pdf"), file("*insert_size_metrics.txt") into chFragmentsSize
+  file("*.{pdf,txt}") into chFragmentsSize
 
   script:
   """
@@ -1042,7 +1038,7 @@ process macs2 {
   label 'macs2'
   label 'medCpu'
   label 'medMem'
-  publishDir path: "${params.outDir}/peakCalling/sharp", mode: 'copy',
+  publishDir path: "${params.outDir}/peakCalling/", mode: 'copy',
     saveAs: { filename ->
             if (filename.endsWith(".tsv")) "stats/$filename"
             else filename
@@ -1183,7 +1179,6 @@ process prepareAnnotation{
 }
     
 process featureCounts{
-  tag "${annot}"
   label 'featureCounts'
   label 'medCpu'
   label 'medMem'
@@ -1341,12 +1336,6 @@ process workflowSummaryMqc {
   """.stripIndent()
 }
 
-planMultiQC
-  .collectFile() {
-  item -> ["sample_plan.csv", item[0] + ',' + item[2] + ',' + item[1][0] + ',' + item[1][1] + '\n']
-  }
-  .set { chSplan }
-
 process multiqc {
   label 'multiqc'
   label 'lowCpu'
@@ -1361,19 +1350,20 @@ process multiqc {
   file metadata from chMetadata.ifEmpty([])
   file multiqcConfig from chMultiqcConfig.ifEmpty([])
   file design from chDesignMqc.collect().ifEmpty([])
-  //set val (prefix), file('lengths_distributions/*') from chFragmentsSize.collect()
-  file ('software_versions/*') from softwareVersionsYaml.collect().ifEmpty([])
-  file ('workflow_summary/*') from workflowSummaryYaml.collect()
+  file ('softwareVersions/*') from softwareVersionsYaml.collect().ifEmpty([])
+  file ('summary/*') from workflowSummaryYaml.collect()
   file ('fastqc/*') from chFastqcMqc.collect().ifEmpty([])
   file ('mapping/*') from chMappingMqc.collect().ifEmpty([])
   file ('mapping/*') from chMarkedPicstats.collect().ifEmpty([])
+  file ('mapping/stats/*') from chRawStats.collect().ifEmpty([])
   file ('mapping/*') from chStatsMqc.collect().ifEmpty([])
   file ('preseq/*') from chPreseqStats.collect().ifEmpty([])
+  file ('fragSize/*') from chFragmentsSize.collect().ifEmpty([])
   file ('deepTools/*') from chDeeptoolsSingleMqc.collect().ifEmpty([])
-  file ("deepTools/*") from chDeeptoolsCorrelMqc.collect().ifEmpty([])
+  //file ("deepTools/*") from chDeeptoolsCorrelMqc.collect().ifEmpty([])
   file ("deepTools/*") from chDeeptoolsFingerprintMqc.collect().ifEmpty([])
-  file ('peakCalling/sharp/*') from chMacsOutputSharp.collect().ifEmpty([])
-  file ('peakCalling/sharp/*') from chMacsCountsSharp.collect().ifEmpty([])
+  file ('peakCalling/*') from chMacsOutputSharp.collect().ifEmpty([])
+  file ('peakCalling/*') from chMacsCountsSharp.collect().ifEmpty([])
   //file('peakQC/*') from chPeakMqc.collect().ifEmpty([])
   
   output:
@@ -1387,11 +1377,9 @@ process multiqc {
   metadataOpts = params.metadata ? "--metadata ${metadata}" : ""
   isPE = params.singleEnd ? "" : "-p"
   designOpts= params.design ? "-d ${params.design}" : ""
-  modules_list = "-m custom_content -m fastqc -m bowtie2 -m star -m preseq -m picard -m phantompeakqualtools -m deeptools -m macs2 -m homer"
+  modules_list = "-m custom_content -m fastqc -m bowtie2 -m star -m preseq -m picard -m deeptools -m macs2 -m homer"
   """
-  cat ${splan}
-  echo ${params.aligner}
-  ${baseDir}/bin/stats2multiqc.sh -s ${splan} ${designOpts} -a ${params.aligner} ${isPE}
+  ${baseDir}/bin/stats2multiqc.sh -s ${splan} ${designOpts} -a ${params.aligner} -m ${params.mitoName} ${isPE}
   ${baseDir}/bin/mqc_header.py --splan ${splan} --name "ATAC-seq" --version ${workflow.manifest.version} ${metadataOpts} > multiqc-config-header.yaml
   multiqc . -f $rtitle $rfilename -c multiqc-config-header.yaml -c $multiqcConfig $modules_list
   """

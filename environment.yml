@@ -21,6 +21,7 @@ dependencies:
   - bioconda::macs2=2.2.6
   - bioconda::subread=2.0.0
   - bioconda::homer=4.10
+  - bioconda::idr=2.0.4.2
 
   # R-packages
   - r-base=3.4.1

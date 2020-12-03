@@ -46,7 +46,7 @@ def helpMessage() {
 
   Inputs:
   --singleEnd [bool]                 Specifies that the input is single end reads
-  --fragmentSize [int]               Estimated fragment length used to extend single-end reads. Default: 200
+  --fragmentSize [int]               Estimated fragment length used to extend single-end reads. Default: 0
 
   References           If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
   --fasta [file]                     Path to Fasta reference
@@ -884,11 +884,7 @@ process bigWig {
   file("v_deeptools.txt") into chDeeptoolsVersion
 
   script:
-  if (params.singleEnd){
-    extend = params.fragmentSize > 0 && !params.noReadExtension ? "--extendReads ${params.fragmentSize}" : ""
-  }else{
-    extend = params.noReadExtension ? "" : "--extendReads"
-  }
+  //extend = params.singleEnd && params.fragmentSize > 0 ? "--extendReads ${params.fragmentSize}" : ""
   blacklistParams = params.blacklist ? "--blackListFileName ${BLbed}" : ""
   effGsize = params.effGenomeSize ? "--effectiveGenomeSize ${params.effGenomeSize}" : ""
   """
@@ -901,7 +897,6 @@ process bigWig {
               -p ${task.cpus} \\
               ${blacklistParams} \\
               ${effGsize} \\
-              ${extend} \\
               --scaleFactor \$sf
   """
 }
@@ -1004,11 +999,7 @@ process deepToolsFingerprint{
   file "plotFingerprint*" into chDeeptoolsFingerprintMqc 
  
   script:
-  if (params.singleEnd){
-    extend = params.fragmentSize > 0 ? "--extendReads ${params.fragmentSize}" : ""
-  }else{
-    extend = "--extendReads"
-  }
+  //extend = params.singleEnd && params.fragmentSize > 0 ? "--extendReads ${params.fragmentSize}" : ""
   allPrefix = allPrefix.toString().replace("[","")
   allPrefix = allPrefix.replace(","," ") 
   allPrefix = allPrefix.replace("]","")
@@ -1017,7 +1008,6 @@ process deepToolsFingerprint{
                   -plot bams_fingerprint.pdf \\
                   -p ${task.cpus} \\
                   -l $allPrefix \\
-                  ${extend} \\
                   --skipZeros \\
                   --outRawCounts plotFingerprint.raw.txt \\
                   --outQualityMetrics plotFingerprint.qmetrics.txt
@@ -1114,7 +1104,7 @@ process peakAnnoHomer{
 
 /*
  * Peak calling & annotation QC
-
+ */
 process peakQC{
   label 'r'
   label 'medCpu'
@@ -1138,7 +1128,7 @@ process peakQC{
   """
   ${baseDir}/bin/plot_macs_qc.r \\
     -i ${peaks.join(',')} \\
-    -s ${peaks.join(',').replaceAll("_peaks.narrowPeak","").replaceAll("_peaks.broadPeak","")} \\
+    -s ${peaks.join(',').replaceAll("_peaks.narrowPeak","")} \\
     -o ./ \\
     -p peak
   plot_homer_annotatepeaks.r \\
@@ -1149,7 +1139,7 @@ process peakQC{
   cat $peakHeader annotatePeaks.summary.txt > annotatedPeaks.summary_mqc.tsv
   """
 }
-*/
+
 
 
 /**************************************
@@ -1364,7 +1354,7 @@ process multiqc {
   file ("deepTools/*") from chDeeptoolsFingerprintMqc.collect().ifEmpty([])
   file ('peakCalling/*') from chMacsOutputSharp.collect().ifEmpty([])
   file ('peakCalling/*') from chMacsCountsSharp.collect().ifEmpty([])
-  //file('peakQC/*') from chPeakMqc.collect().ifEmpty([])
+  file('peakQC/*') from chPeakMqc.collect().ifEmpty([])
   
   output:
   file splan

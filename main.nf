@@ -921,23 +921,24 @@ process deepToolsComputeMatrix{
 
   output:
   file("*.{gz,pdf}") into chDeeptoolsSingle
-  file("*_corrected.tab") into chDeeptoolsSingleMqc
+  file("*corrected.tab") into chDeeptoolsSingleMqc
 
   script:
   """
-  computeMatrix scale-regions \\
+  computeMatrix reference-point \\
+                --referencePoint TSS \\
                 -R $geneBed \\
                 -S ${bigwig} \\
                 -o ${prefix}_matrix.mat.gz \\
                 --outFileNameMatrix ${prefix}.computeMatrix.vals.mat.gz \\
-                --downstream 1000 --upstream 1000 --skipZeros --binSize 100\\
+                -b 1000 -a 1000 --skipZeros \\
                 -p ${task.cpus}
 
   plotProfile -m ${prefix}_matrix.mat.gz \\
               -o ${prefix}_bams_profile.pdf \\
               --outFileNameData ${prefix}.plotProfile.tab
   
-  sed -e 's/.0\t/\t/g' ${prefix}.plotProfile.tab | sed -e 's@.0\$@@g' > ${prefix}_plotProfile_corrected.tab
+  sed -e 's/.0\t/\t/g' -e 's/tick/TSS/' ${prefix}.plotProfile.tab | sed -e 's@.0\$@@g' > ${prefix}_plotProfile_corrected.tab
   """
 }
 

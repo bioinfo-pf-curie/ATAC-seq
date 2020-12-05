@@ -880,7 +880,9 @@ process bigWig {
   file(BLbed) from chBlacklistBigWig.collect()
 
   output:
-  set val(prefix), file('*.bigwig') into chBigWig
+  set val(prefix), file('*norm.bigwig') into chBigWig
+  set val("${prefix}_NFR"), file('*NFR.bigwig') into chBigWigNFR
+  set val("${prefix}_NUC"), file('*NUC.bigwig') into chBigWigNUC
   file("v_deeptools.txt") into chDeeptoolsVersion
 
   script:
@@ -897,6 +899,21 @@ process bigWig {
               -p ${task.cpus} \\
               ${blacklistParams} \\
               ${effGsize} \\
+              --scaleFactor \$sf
+
+  bamCoverage -b ${filteredBams[0]} \\
+              -o ${prefix}_NFR.bigwig \\
+              -p ${task.cpus} \\
+              ${effGsize} \\
+              --maxFragmentLength 100 \\
+              --scaleFactor \$sf
+
+  bamCoverage -b ${filteredBams[0]} \\
+              -o ${prefix}_NUC.bigwig \\
+              -p ${task.cpus} \\
+              ${effGsize} \\
+              --minFragmentLength 180 \\
+              --maxFragmentLength 437 \\
               --scaleFactor \$sf
   """
 }
@@ -916,7 +933,7 @@ process deepToolsComputeMatrix{
   !params.skipDeepTools
 
   input:
-  set val(prefix), file(bigwig) from chBigWig
+  set val(prefix), file(bigwig) from chBigWigNFR.concat(chBigWigNUC)
   file geneBed from chGeneBedDeeptools.collect()
 
   output:
@@ -924,6 +941,7 @@ process deepToolsComputeMatrix{
   file("*corrected.tab") into chDeeptoolsSingleMqc
 
   script:
+  effGsize = params.effGenomeSize ? "--effectiveGenomeSize ${params.effGenomeSize}" : ""
   """
   computeMatrix reference-point \\
                 --referencePoint TSS \\
@@ -935,12 +953,15 @@ process deepToolsComputeMatrix{
                 -p ${task.cpus}
 
   plotProfile -m ${prefix}_matrix.mat.gz \\
-              -o ${prefix}_bams_profile.pdf \\
+              -o ${prefix}_profile.pdf \\
               --outFileNameData ${prefix}.plotProfile.tab
   
-  sed -e 's/.0\t/\t/g' -e 's/tick/TSS/' ${prefix}.plotProfile.tab | sed -e 's@.0\$@@g' > ${prefix}_plotProfile_corrected.tab
+  sed -e 's/.0\t/\t/g' -e 's/tick/TSS/' ${prefix}.plotProfile.tab | sed -e 's@.0\$@@g' > ${prefix}.plotProfile_corrected.tab
   """
 }
+
+
+
 
 /*
 process deepToolsCorrelationQC{
@@ -1201,6 +1222,7 @@ process featureCounts{
   """
 }
 
+
 /*
 replicate,samplename,narrowpeak
 
@@ -1347,6 +1369,7 @@ process multiqc {
   file ('mapping/*') from chMappingMqc.collect().ifEmpty([])
   file ('mapping/*') from chMarkedPicstats.collect().ifEmpty([])
   file ('mapping/stats/*') from chRawStats.collect().ifEmpty([])
+  file ('mapping/stats/*') from chFilteredStats.collect().ifEmpty([])
   file ('mapping/*') from chStatsMqc.collect().ifEmpty([])
   file ('preseq/*') from chPreseqStats.collect().ifEmpty([])
   file ('fragSize/*') from chFragmentsSize.collect().ifEmpty([])

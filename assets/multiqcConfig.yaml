@@ -1,5 +1,5 @@
 #
-# MY_PIPELINE config for MultiQC
+# config for MultiQC
 #
 #################################################################
 
@@ -108,6 +108,20 @@ custom_data:
               format: '{:,.1f}'
               suffix: '%'
               placement: 10000
+            Number_of_usable_reads:
+              title: 'Final Usable Reads Number'
+              scale: 'RdYlGn'
+              format: '{:,.0f}'
+              hidden: true
+              placement: 11000
+            Percent_of_usable_reads:
+              title: 'Final Usable Reads (%)'
+              min: 0
+              max: 100
+              scale: 'RdYlVBu'
+              format: '{:,.1f}'
+              suffix: '%'
+              placement: 12000
             Fraction_of_reads_in_peaks:
               min: 0
               max: 1
@@ -156,6 +170,13 @@ table_cond_formatting_rules:
           - gt: 25
         fail:
           - gt: 50
+    Percent_of_usable_reads:
+        pass:
+          - gt: 50
+        warn:
+          - gt: 25
+        fail:
+          - lt: 25
     Fraction_of_reads_in_peaks:
         pass:
           - gt: 0.01
@@ -179,7 +200,25 @@ module_order:
       name: 'Sequencing Complexity'
       info: 'estimates the complexity of a library, showing how many additional unique reads are sequenced for increasing total read count. A shallow curve indicates complexity saturation. The dashed line shows a perfectly complex library where total reads = unique reads. The presented graph shows extrapolated curves up to 200M sequencing reads.'
    - macs2
-   - deeptools
+   - deeptools:
+      name: 'NFR enrichment'
+      info: '- Nucleome-Free Regions (NFR) enrichment around Transcription Start Sites (TSS). Only fragments with a size lower than 100 bp are considered.'
+      anchor: 'deeptools-NFR'
+      path_filters:
+        - '*NFR.plotProfile_corrected.tab'
+      path_filters_exclude:
+        - '*NUC.plotProfile_corrected.tab'
+        - 'plotFingerprint*'
+   - deeptools:
+      name: 'Nucleosomes enrichment'
+      info: '- Mono/di/tri-nucleosomes enrichment around Transcription Start Sites (TSS). Fragments with a size between 180 and 437 bp are considered.'
+      anchor: 'deeptools-NUC'
+      path_filters:
+        - '*NUC.plotProfile_corrected.tab'
+   - deeptools:
+      name: 'Fingerprint'
+      path_filters_exclude:
+        - '*plotProfile_corrected.tab'
    - homer
 
 report_section_order:
@@ -242,5 +281,7 @@ custom_plot_config:
       xmax: 1000
       logswitch: True
       logswitch_active: False
+   read_distribution_profile:
+      title: 'Signal enrichment around TSS'
 
 plots_force_interactive: True

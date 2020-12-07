@@ -249,11 +249,14 @@ if (!params.effGenomeSize) {
 
 Channel
   .fromPath("$baseDir/assets/peak_count_header.txt")
-  .set { chPeakCountHeaderSharp }
+  //.set { chPeakCountHeaderSharp }
+  .into { chPeakCountHeaderMacs2Sharp; chPeakCountHeaderGenrichSharp }
 
 Channel
   .fromPath("$baseDir/assets/frip_score_header.txt")
-  .set { chFripScoreHeaderSharp }
+  //.set { chFripScoreHeaderSharp }
+  .into { chFripScoreHeaderMacs2Sharp; chFripScoreHeaderGenrichSharp }
+
 
 Channel
   .fromPath("$baseDir/assets/peak_annotation_header.txt")
@@ -463,7 +466,8 @@ if (params.design){
     .map { row ->
       return [ row.SAMPLEID, row.SAMPLENAME, row.GROUP, row.REPLICATE ]
      }
-    .set { chDesignControl }
+    .dump(tag : 'chDesignControl')
+    .into { chDesignControl; chDesignControlGenrich }
 }else{
   chDesignCheck = Channel.empty()
   chDesignMqc = Channel.empty()
@@ -826,6 +830,9 @@ process bamFiltering {
   """
 }
 
+chFilteredFlagstat
+                 .into{ chFilteredMacs2Flagstat;chFilteredGenrichFlagstat }
+
 
 /*
  * Shifting reads
@@ -860,7 +867,7 @@ chShiftBams
   .ifEmpty(chFilteredBams)
   .dump(tag : 'cbams')
   .into{ chBamsFragSize;
-  	 chBamsMacs;
+  	 chBamsMacs;chBamsGenrich
          chBamsBigWig;
          chBamDTCor ; chBaiDTCor; chSampleDTCor ;
          chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
@@ -1092,13 +1099,13 @@ process macs2 {
   !params.skipPeakCalling && params.effGenomeSize
 
   input:
-  set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacs.join(chFilteredFlagstat)
-  file peakCountHeader from chPeakCountHeaderSharp.collect()
-  file fripScoreHeader from chFripScoreHeaderSharp.collect()
+  set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacs.join(chFilteredMacs2Flagstat)
+  file peakCountHeader from chPeakCountHeaderMacs2Sharp.collect()
+  file fripScoreHeader from chFripScoreHeaderMacs2Sharp.collect()
 
   output:
   file("*.xls") into chMacsOutputSharp
-  set val(prefix), file("*.narrowPeak") into chPeaksMacs
+  set val(prefix), file("*Macs2_peaks.narrowPeak"), val("Macs2") into chPeaksMacs
   file "*_mqc.tsv" into chMacsCountsSharp
   file("v_macs2.txt") into chMacs2VersionMacs2Sharp
 
@@ -1110,18 +1117,68 @@ process macs2 {
     -t ${bam[0]} \\
     -f $format \\
     -g $params.effGenomeSize \\
-    -n $prefix \\
+    -n ${prefix}_Macs2 \\
     --SPMR --trackline --bdg \\
-    --keep-dup all --nomodel
-  cat ${prefix}_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_peaks.count_mqc.tsv
-  READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_peaks.FRiP_mqc.tsv
+    --keep-dup all --nomodel --call-summits
+  cat ${prefix}_Macs2_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Macs2_peaks.count_mqc.tsv
+  READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Macs2_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Macs2_peaks.FRiP_mqc.tsv
   """
  }
 
+/*
 chPeaksMacs
   .dump(tag : 'chPeakHomer')
+  .into{ chPeaksHomer; chPeakMacs2QC; chMacs2IDR }
+*/
+
+/*
+ * GENRICH - sharp mode
+ */
+
+process genrich {
+  tag "${prefix}"
+  label 'genrich'
+  label 'medCpu'
+  label 'medMem'
+  publishDir path: "${params.outDir}/peakCalling/", mode: 'copy',
+    saveAs: { filename ->
+            if (filename.endsWith(".tsv")) "stats/$filename"
+            else filename
+            }
+
+  when:
+  !params.skipGenrichPeakCalling && params.effGenomeSize
+
+  input:
+  set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
+  file peakCountHeader from chPeakCountHeaderGenrichSharp.collect()
+  file fripScoreHeader from chFripScoreHeaderGenrichSharp.collect()
+
+  output:
+  //file("*.xls") into chGenrichOutputSharp
+  set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chPeaksGenrich
+  file "*_mqc.tsv" into chGenrichCountsSharp
+  file("v_genrich.txt") into chGenrichVersionSharp
+
+ script:
+  format = params.singleEnd ? "BAM" : "BAMPE"
+  """
+  samtools sort -n -@ ${task.cpus} -o ${prefix}_nsorted.bam ${bam[0]} 
+  echo \$(Genrich --version) &> v_genrich.txt
+  Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak  -j
+
+
+  cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Genrich_peaks.count_mqc.tsv
+  READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Genrich_peaks.FRiP_mqc.tsv
+  """
+ }
+
+chPeaksMacs.concat(chPeaksGenrich)
+  .dump(tag : 'chPeakHomer')
   .into{ chPeaksHomer; chPeakQC; chIDR }
+
 
 /************************************
  * Peaks Annotation
@@ -1138,7 +1195,8 @@ process peakAnnoHomer{
   !params.skipPeakAnno
 
   input:
-  set val(sample), file (peakfile) from chPeaksHomer
+  //set val(sample), file (peakfile), val(caller) from chPeaksMacs2Homer.concat(chPeaksGenrichHomer)
+  set val(sample), file (peakfile), val(caller) from chPeaksHomer
   file gtfFile from chGtfHomer.collect()
   file fastaFile from chFastaHomer.collect()
 
@@ -1151,7 +1209,7 @@ process peakAnnoHomer{
         $fastaFile \\
         -gtf $gtfFile \\
         -cpu ${task.cpus} \\
-        > ${sample}_annotated_peaks.txt
+        > ${sample}_${caller}_annotated_peaks.txt
   """
 }
 
@@ -1170,7 +1228,7 @@ process peakQC{
   !params.skipPeakQC && params.design
 
   input:
-  file peaks from chPeakQC.collect{ it[-1] }
+  file peaks from chPeakQC.collect{ it[-2] }
   file annotations from chHomerMqc.collect()
   file peakHeader from chPeakAnnotationHeader
 
@@ -1257,14 +1315,33 @@ process featureCounts{
 
 /*
 replicate,samplename,narrowpeak
+*/
+
+
+if(params.skipGenrichPeakCalling){
+Channel.empty()
+              .set {chDesignControlGenrich}
+}
+
 
 chIDR
-    .map { row -> [ row[0], row[1].replace("_".concat(row[0].toString()),""), row[2] ] }
-    .groupTuple( by : 1)
-    .dump(tag : 'idr')
-    .into { chIDR2; chIDR3 }
+    .join(chDesignControl.concat(chDesignControlGenrich), remainder : false)
+    .branch {
+        Genrich : it[2] == 'Genrich'
+        Macs2 : it[2] == 'Macs2'
+    }
+    //.groupTuple( by : 3)
+    .set { chIDR }
 
-process IDR {
+chIDR.Macs2
+    .into {chIDRMacs2; chIDRMacs2Counts}
+
+chIDR.Genrich
+    .dump(tag : 'idrGenrich')
+    .into {chIDRGenrich; chIDRGenrichCounts}
+  
+
+process IDRMacs2 {
 tag "${samplename} IDR"
 label 'IDR'
 label 'medCpu'
@@ -1272,56 +1349,69 @@ label 'medMem'
 publishDir "${params.outDir}/IDR/", mode: "copy"
 //errorStrategy 'ignore'
 input:
-  set val(replicate), val(samplename), file(narrowPeaks) from chIDR2
-  val(replicate_counts) from chIDR3
+  //set val(replicate), val(samplename), file(narrowPeaks) from chIDR.Macs2.groupTuple( by : 3)
+  set val(replicate),file(narrowPeaks),val(caller),val(samplename),val(group),val(replicate) from chIDRMacs2.groupTuple( by : 3)
+  val(replicate_counts) from chIDRMacs2Counts.groupTuple( by : 3)
                                   .map{ row -> row[0].size()}
+
 when:
   !params.skipIDR && replicate_counts >= 2
-output:
-  set file("${samplename}.idr.txt"), file("${samplename}.idr.log") into chIdrResults 
+//output:
+//  set file("${samplename}.idr.txt"), file("${samplename}.idr.log") into chIdrResults 
 script:
 """
+
+echo "samplename"
+echo -e "${samplename}"
+echo -e 'peaksfiles'
+echo -e "${narrowPeaks}"
+
 ### Create an array containing all peakfile replicates for this sample ###
-peaksfiles=(${narrowPeaks})
-calculatemax=(${narrowPeaks})
+#peaksfiles=(${narrowPeaks})
+#calculatemax=(${narrowPeaks})
 ### replace each peak file in the array by its number of peaks ####
-for index in \${!calculatemax[@]}
-do
-echo -e \${peaksfiles[\${index}]}
-echo "a\ta\ta\tpeak_0\ta\ta\ta\ta\ta\ta" >> \${peaksfiles[\${index}]}
-max=\$(cut -f4 \${calculatemax[\${index}]} |  grep -o 'peak_.*' | grep -o '[0-9]*' | sort -n | tail -1);
-sed -i '/a\ta\ta\tpeak_0\ta\ta\ta\ta\ta\ta/d' \${peaksfiles[\${index}]}
-calculatemax[\${index}]=\${max}
-echo \${calculatemax[\${index}]}
-done
+#for index in \${!calculatemax[@]}
+#do
+#echo -e \${peaksfiles[\${index}]}
+#echo "a\ta\ta\tpeak_0\ta\ta\ta\ta\ta\ta" >> \${peaksfiles[\${index}]}
+#max=\$(cut -f4 \${calculatemax[\${index}]} |  grep -o 'peak_.*' | grep -o '[0-9]*' | sort -n | tail -1);
+#sed -i '/a\ta\ta\tpeak_0\ta\ta\ta\ta\ta\ta/d' \${peaksfiles[\${index}]}
+#calculatemax[\${index}]=\${max}
+#echo \${calculatemax[\${index}]}
+#done
 
 #### Get positions of the two samples with the biggest number of peaks in the file ########
-maxpos=0
-for index in \${!calculatemax[@]}
-do
-  ((calculatemax[\$index] > calculatemax[\$maxpos])) && maxpos=\$index
-done
-echo -e "Peakfile with biggest number of peaks is : \n"
-echo -e \${peaksfiles[\$maxpos]}
-firstsample=\${peaksfiles[\$maxpos]}
+#maxpos=0
+#for index in \${!calculatemax[@]}
+#do
+#  ((calculatemax[\$index] > calculatemax[\$maxpos])) && maxpos=\$index
+#done
+#echo -e "Peakfile with biggest number of peaks is : \n"
+#echo -e \${peaksfiles[\$maxpos]}
+#firstsample=\${peaksfiles[\$maxpos]}
 
-calculatemax[maxpos]=0
-for index in \${!calculatemax[@]}
-do
-    ((calculatemax[\$index] > calculatemax[\$maxpos])) && maxpos=\$index
-done
-echo -e "Peakfile with second biggest number of peaks is : \n"
-echo -e \${peaksfiles[\$maxpos]}
-secondsample=\${peaksfiles[\$maxpos]}
+#calculatemax[maxpos]=0
+#for index in \${!calculatemax[@]}
+#do
+#    ((calculatemax[\$index] > calculatemax[\$maxpos])) && maxpos=\$index
+#done
+#echo -e "Peakfile with second biggest number of peaks is : \n"
+#echo -e \${peaksfiles[\$maxpos]}
+#secondsample=\${peaksfiles[\$maxpos]}
 
-idr --samples \${firstsample} \${secondsample}  \
---input-file-type narrowPeak \
---rank p.value \
---output-file ${samplename}.idr.txt \
---plot \
---log-output-file ${samplename}.idr.log
+#idr --samples \${firstsample} \${secondsample}  \
+#--input-file-type narrowPeak \
+#--rank p.value \
+#--output-file ${samplename}.idr.txt \
+#--plot \
+#--log-output-file ${samplename}.idr.log
 """
 }
+
+/*
+
+chIDRGenrich
+
 */
 
 /*
@@ -1344,6 +1434,7 @@ process getSoftwareVersions{
   file 'v_samtools.txt' from chSamtoolsVersionBamSort.concat(chSamtoolsVersionBamFiltering).first().ifEmpty([])
   file 'v_picard.txt' from chPicardVersion.first().ifEmpty([])
   file 'v_macs2.txt' from chMacs2VersionMacs2Sharp.first().ifEmpty([])
+  file 'v_genrich.txt' from chGenrichVersionSharp.first().ifEmpty([])
   file 'v_preseq.txt' from chPreseqVersion.first().ifEmpty([])
   file 'v_deeptools.txt' from chDeeptoolsVersion.first().ifEmpty([])
   file 'v_featurecounts.txt' from chFeaturecountsVersion.first().ifEmpty([])

@@ -826,7 +826,38 @@ process bamFiltering {
   """
 }
 
-chFilteredBams
+
+/*
+ * Shifting reads
+ */
+
+process readsShifting {
+  tag "${prefix}"
+  label 'deeptools'
+  label 'medCpu'
+  label 'medMem'
+  publishDir path: "${params.outDir}/mapping", mode: 'copy',
+    saveAs: {filename ->
+             if (filename.endsWith("_filtered_shifted.bam") || (filename.endsWith("_filtered_shifted.bam.bai"))) filename
+             else null}
+
+  when: !params.skipShift
+
+  input:
+  set val(prefix), file(filteredBam) from chFilteredBams 
+
+  output:
+  set val(prefix), file("*filtered_shifted.{bam,bam.bai}") into chShiftBams
+  script:
+  """
+  alignmentSieve -b ${filteredBam[0]} -p ${task.cpus} --ATACshift -o ${prefix}_filtered_shifted_tmp.bam
+  samtools sort  ${prefix}_filtered_shifted_tmp.bam -@ ${task.cpus} -o ${prefix}_filtered_shifted.bam 
+  samtools index ${prefix}_filtered_shifted.bam
+  """
+}
+
+chShiftBams
+  .ifEmpty(chFilteredBams)
   .dump(tag : 'cbams')
   .into{ chBamsFragSize;
   	 chBamsMacs;
@@ -859,6 +890,7 @@ process getFragmentSize {
       I=${filteredBam[0]} \
       O=${prefix}_insert_size_metrics.txt \
       H=${prefix}_insert_size_histogram.pdf \
+      VALIDATION_STRINGENCY=LENIENT \
       M=0.5
   """
 }

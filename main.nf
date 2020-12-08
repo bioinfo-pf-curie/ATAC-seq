@@ -79,6 +79,8 @@ def helpMessage() {
   --skipPeakanno [bool]              Skips peak annotation
   --skipFeatCounts [bool]            Skips feature count
   --skipMultiQC [bool]               Skips MultiQC step
+  --skipShift [bool]                 Skips reads shifting step
+  --skipGenrichPeakCalling           Skips Genrich peak calling
 
   Other options:
   --metadata [file]                  Path to metadata file for MultiQC report
@@ -467,7 +469,7 @@ if (params.design){
       return [ row.SAMPLEID, row.SAMPLENAME, row.GROUP, row.REPLICATE ]
      }
     .dump(tag : 'chDesignControl')
-    .into { chDesignControl; chDesignControlGenrich }
+    .into { chDesignControl; chDesignControlGenrich; chDesignControlGroups; chDesignControlGroupsGenrich }
 }else{
   chDesignCheck = Channel.empty()
   chDesignMqc = Channel.empty()
@@ -1177,7 +1179,7 @@ process genrich {
 
 chPeaksMacs.concat(chPeaksGenrich)
   .dump(tag : 'chPeakHomer')
-  .into{ chPeaksHomer; chPeakQC; chIDR }
+  .into{ chPeaksHomer; chPeakQC; chIdrReplicates; chIdrGroups }
 
 
 /************************************
@@ -1195,7 +1197,6 @@ process peakAnnoHomer{
   !params.skipPeakAnno
 
   input:
-  //set val(sample), file (peakfile), val(caller) from chPeaksMacs2Homer.concat(chPeaksGenrichHomer)
   set val(sample), file (peakfile), val(caller) from chPeaksHomer
   file gtfFile from chGtfHomer.collect()
   file fastaFile from chFastaHomer.collect()
@@ -1312,107 +1313,88 @@ process featureCounts{
   """
 }
 
-
-/*
-replicate,samplename,narrowpeak
-*/
-
-
 if(params.skipGenrichPeakCalling){
 Channel.empty()
               .set {chDesignControlGenrich}
 }
 
-
-chIDR
+chIdrReplicates
     .join(chDesignControl.concat(chDesignControlGenrich), remainder : false)
-    .branch {
-        Genrich : it[2] == 'Genrich'
-        Macs2 : it[2] == 'Macs2'
-    }
-    //.groupTuple( by : 3)
-    .set { chIDR }
+    .groupTuple( by : [2,3])
+    .dump(tag : 'IDRReplicates')
+    .into { chIdrReplicates; chIdrReplicatesCounts }
 
-chIDR.Macs2
-    .into {chIDRMacs2; chIDRMacs2Counts}
+chIdrGroups
+    .join(chDesignControlGroups.concat(chDesignControlGroupsGenrich), remainder : false)
+    .groupTuple( by : [2,4])
+    .dump(tag : 'IDRGroups')
+    .into { chIdrGroups; chIdrGroupsCounts }
 
-chIDR.Genrich
-    .dump(tag : 'idrGenrich')
-    .into {chIDRGenrich; chIDRGenrichCounts}
-  
 
-process IDRMacs2 {
-tag "${samplename} IDR"
-label 'IDR'
+process ReplicatesIDR {
+tag "${samplename} IDR Replicates"
+label 'IDR_Replicates'
 label 'medCpu'
 label 'medMem'
-publishDir "${params.outDir}/IDR/", mode: "copy"
-//errorStrategy 'ignore'
+publishDir "${params.outDir}/IDR/Replicates", mode: "copy"
+errorStrategy 'ignore'
 input:
-  //set val(replicate), val(samplename), file(narrowPeaks) from chIDR.Macs2.groupTuple( by : 3)
-  set val(replicate),file(narrowPeaks),val(caller),val(samplename),val(group),val(replicate) from chIDRMacs2.groupTuple( by : 3)
-  val(replicate_counts) from chIDRMacs2Counts.groupTuple( by : 3)
+  set val(sampleidR),file(narrowPeaksR),val(callerR),val(samplenameR),val(groupR),val(replicateR) from chIdrReplicates
+  val(ReplicatesCounts) from chIdrReplicatesCounts
                                   .map{ row -> row[0].size()}
 
 when:
-  !params.skipIDR && replicate_counts >= 2
-//output:
-//  set file("${samplename}.idr.txt"), file("${samplename}.idr.log") into chIdrResults 
+  !params.skipIDR && ReplicatesCounts >= 2
+output:
+  set file("${samplenameR}_${callerR}.idr.txt"), file("${samplenameR}_${callerR}.idr.log") into chIdrResultsReplicates
+ 
 script:
 """
+####### Calculating IDR Across sample replicates ###################"
+selectedsamples=`${baseDir}/bin/select_peakfiles_for_IDR.py --caller $callerR --peakfiles $narrowPeaksR`
 
-echo "samplename"
-echo -e "${samplename}"
-echo -e 'peaksfiles'
-echo -e "${narrowPeaks}"
-
-### Create an array containing all peakfile replicates for this sample ###
-#peaksfiles=(${narrowPeaks})
-#calculatemax=(${narrowPeaks})
-### replace each peak file in the array by its number of peaks ####
-#for index in \${!calculatemax[@]}
-#do
-#echo -e \${peaksfiles[\${index}]}
-#echo "a\ta\ta\tpeak_0\ta\ta\ta\ta\ta\ta" >> \${peaksfiles[\${index}]}
-#max=\$(cut -f4 \${calculatemax[\${index}]} |  grep -o 'peak_.*' | grep -o '[0-9]*' | sort -n | tail -1);
-#sed -i '/a\ta\ta\tpeak_0\ta\ta\ta\ta\ta\ta/d' \${peaksfiles[\${index}]}
-#calculatemax[\${index}]=\${max}
-#echo \${calculatemax[\${index}]}
-#done
-
-#### Get positions of the two samples with the biggest number of peaks in the file ########
-#maxpos=0
-#for index in \${!calculatemax[@]}
-#do
-#  ((calculatemax[\$index] > calculatemax[\$maxpos])) && maxpos=\$index
-#done
-#echo -e "Peakfile with biggest number of peaks is : \n"
-#echo -e \${peaksfiles[\$maxpos]}
-#firstsample=\${peaksfiles[\$maxpos]}
-
-#calculatemax[maxpos]=0
-#for index in \${!calculatemax[@]}
-#do
-#    ((calculatemax[\$index] > calculatemax[\$maxpos])) && maxpos=\$index
-#done
-#echo -e "Peakfile with second biggest number of peaks is : \n"
-#echo -e \${peaksfiles[\$maxpos]}
-#secondsample=\${peaksfiles[\$maxpos]}
-
-#idr --samples \${firstsample} \${secondsample}  \
-#--input-file-type narrowPeak \
-#--rank p.value \
-#--output-file ${samplename}.idr.txt \
-#--plot \
-#--log-output-file ${samplename}.idr.log
+idr --samples \$selectedsamples  \
+--input-file-type narrowPeak \
+--rank p.value \
+--output-file ${samplenameR}_${callerR}.idr.txt \
+--plot \
+--log-output-file ${samplenameR}_${callerR}.idr.log
 """
 }
 
-/*
 
-chIDRGenrich
+process GroupsIDR {
+tag "${samplename} IDR Groups"
+label 'IDR_Groups'
+label 'medCpu'
+label 'medMem'
+publishDir "${params.outDir}/IDR/Groups", mode: "copy"
+errorStrategy 'ignore'
+input:
+  set val(sampleidG),file(narrowPeaksG),val(callerG),val(samplenameG),val(groupG),val(replicateG) from chIdrGroups
+  val(GroupsCounts) from chIdrGroupsCounts
+                                  .map{ row -> row[0].size()}
 
-*/
+
+when:
+  !params.skipIDR && GroupsCounts >= 2
+output:
+  set file("${samplenameG[0]}_${callerG}.idr.txt"), file("${samplenameG[0]}_${callerG}.idr.log") into chIdrResultsGroups
+
+script:
+"""
+######## Calculating IDR Across biological categories #######################
+selectedsamples=`${baseDir}/bin/select_peakfiles_for_IDR.py --caller $callerG --peakfiles $narrowPeaksG`
+
+idr --samples \${selectedsamples}  \
+--input-file-type narrowPeak \
+--rank p.value \
+--output-file ${samplenameG[0]}_${callerG}.idr.txt \
+--plot \
+--log-output-file ${samplenameG[0]}_${callerG}.idr.log
+"""
+}
+
 
 /*
  * MultiQC
@@ -1449,7 +1431,6 @@ process getSoftwareVersions{
   """
 }
 
-
 process workflowSummaryMqc {
   when:
   !params.skipMultiQC
@@ -1471,6 +1452,7 @@ process workflowSummaryMqc {
         </dl>
   """.stripIndent()
 }
+
 
 process multiqc {
   label 'multiqc'

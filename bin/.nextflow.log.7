@@ -1,0 +1,332 @@
+Dec-08 16:52:36.195 [main] DEBUG nextflow.cli.Launcher - Setting HTTP proxy: [www-cache.curie.fr, 3128]
+Dec-08 16:52:36.261 [main] DEBUG nextflow.cli.Launcher - Setting http proxy: [www-cache.curie.fr, 3128]
+Dec-08 16:52:36.262 [main] DEBUG nextflow.cli.Launcher - $> nextflow run /data/users/cbenoit/Documents/ATACseq/atac-seq/main.nf -profile test -dump-channels IDR,doublegroupedIDR -resume -w /data/users/cbenoit/SAFIR_BREAST_LUNG/work/ --outDir /data/users/cbenoit/SAFIR_BREAST_LUNG/atac_results
+Dec-08 16:52:36.348 [main] INFO  nextflow.cli.CmdRun - N E X T F L O W  ~  version 20.01.0
+Dec-08 16:52:36.374 [main] INFO  nextflow.cli.CmdRun - Launching `/data/users/cbenoit/Documents/ATACseq/atac-seq/main.nf` [zen_lamport] - revision: 8abd0580d1
+Dec-08 16:52:36.397 [main] DEBUG nextflow.config.ConfigBuilder - Found config base: /data/users/cbenoit/Documents/ATACseq/atac-seq/nextflow.config
+Dec-08 16:52:36.398 [main] DEBUG nextflow.config.ConfigBuilder - Parsing config file: /data/users/cbenoit/Documents/ATACseq/atac-seq/nextflow.config
+Dec-08 16:52:36.423 [main] DEBUG nextflow.config.ConfigBuilder - Applying config profile: `test`
+Dec-08 16:52:37.293 [main] DEBUG nextflow.config.ConfigBuilder - Available config profiles: [path, cluster, test, multipath, multiconda, conda, singularity, docker]
+Dec-08 16:52:37.354 [main] DEBUG nextflow.Session - Session uuid: 119fe8f5-a4fd-4473-bc66-73ec4c0b11ba
+Dec-08 16:52:37.354 [main] DEBUG nextflow.Session - Run name: zen_lamport
+Dec-08 16:52:37.355 [main] DEBUG nextflow.Session - Executor pool size: 4
+Dec-08 16:52:37.395 [main] DEBUG nextflow.cli.CmdRun - 
+  Version: 20.01.0 build 5264
+  Created: 12-02-2020 10:14 UTC (11:14 CEST)
+  System: Linux 3.10.0-1062.18.1.el7.x86_64
+  Runtime: Groovy 2.5.8 on OpenJDK 64-Bit Server VM 11.0.1-internal+0-adhoc..src
+  Encoding: UTF-8 (UTF-8)
+  Process: 5960@shbli047 [10.2.200.113]
+  CPUs: 4 - Mem: 125.6 GB (5.4 GB) - Swap: 0 (0)
+Dec-08 16:52:37.449 [main] DEBUG nextflow.Session - Work-dir: /data/users/cbenoit/SAFIR_BREAST_LUNG/work [nfs]
+Dec-08 16:52:37.489 [main] DEBUG nextflow.Session - Observer factory: TowerFactory
+Dec-08 16:52:37.491 [main] DEBUG nextflow.Session - Observer factory: DefaultObserverFactory
+Dec-08 16:52:37.751 [main] DEBUG nextflow.Session - Session start invoked
+Dec-08 16:52:37.755 [main] DEBUG nextflow.trace.TraceFileObserver - Flow starting -- trace file: /data/users/cbenoit/SAFIR_BREAST_LUNG/atac_results/summary/trace/trace.txt
+Dec-08 16:52:38.956 [main] DEBUG nextflow.script.ScriptRunner - > Launching execution
+Dec-08 16:52:38.965 [main] DEBUG nextflow.Session - Workflow process names [dsl1]: checkDesign, macs2, getFragmentSize, workflowSummaryMqc, bigWig, preseq, readsShifting, deepToolsComputeMatrix, genrich, featureCounts, bamSort, multiqc, peakAnnoHomer, getSoftwareVersions, deepToolsFingerprint, bowtie2, outputDocumentation, star, IDRReplicates, peakQC, prepareAnnotation, bamFiltering, markDuplicates, fastQC, bwaMem, IDRGroups
+Dec-08 16:52:39.230 [main] INFO  nextflow.Nextflow - ======================================================================
+DISCLAIMER
+
+This software is currently under active development and the results 
+have been generated with a non stable version.
+The reliability, reproducibility and the quality of the results are 
+therefore not guaranteed.
+
+/!\ Do not use the results for any kind of projects /!\
+======================================================================
+
+
+Dec-08 16:52:39.234 [main] INFO  nextflow.Nextflow - =======================================================
+
+ATAC-seq v1.0.0dev"
+=======================================================
+Dec-08 16:52:39.237 [main] INFO  nextflow.Nextflow - Pipeline Name  : ATAC-seq
+Pipeline Version: 1.0.0dev
+Run Name       : zen_lamport
+Reads          : null
+Design         : /data/users/cbenoit/Documents/ATACseq/atac-seq/test/design.csv
+Annotation     : /data/annotations/pipelines
+Fasta Ref      : /data/annotations/pipelines/Human/hg19/genome/hg19.fa
+GTF            : /data/annotations/pipelines/Human/hg19/gtf/gencode.v19.annotation.gtf
+Genes          : /data/annotations/pipelines/Human/hg19/gtf/gencode.v19.annotation_proteinCoding_gene.bed
+Blacklist      : /data/annotations/pipelines/Human/hg19/ENCODE/ENCFF001TDO_merged.bed
+Data Type      : Paired-End
+Aligner        : bwa-mem
+Max Memory     : 8 GB
+Max CPUs       : 4
+Max Time       : 2h
+Output dir     : /data/users/cbenoit/SAFIR_BREAST_LUNG/atac_results
+Working dir    : /data/users/cbenoit/SAFIR_BREAST_LUNG/work
+Current home   : /data/users/cbenoit
+Current user   : cbenoit
+Current path   : /data/users/cbenoit/Documents/ATACseq/atac-seq/bin
+Script dir     : /data/users/cbenoit/Documents/ATACseq/atac-seq
+Config Profile : test
+Dec-08 16:52:39.238 [main] INFO  nextflow.Nextflow - =========================================
+Dec-08 16:52:39.448 [Actor Thread 4] DEBUG nextflow.sort.BigSort - Sort completed -- entries: 3; slices: 1; internal sort time: 0.019 s; external sort time: 0.001 s; total time: 0.02 s
+Dec-08 16:52:39.455 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.456 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.462 [main] DEBUG nextflow.executor.Executor - [warm up] executor > local
+Dec-08 16:52:39.463 [Actor Thread 4] DEBUG nextflow.file.FileCollector - >> temp file exists? true
+Dec-08 16:52:39.468 [main] DEBUG n.processor.LocalPollingMonitor - Creating local task monitor for executor 'local' > cpus=4; memory=125.6 GB; capacity=4; pollInterval=100ms; dumpInterval=5m
+Dec-08 16:52:39.469 [Actor Thread 4] DEBUG nextflow.file.FileCollector - Retrivied cached collect-files from: /scratch/7010105.torque6.curie.fr/59ee28690bda6517a04a90fe08a6bdb8.collect-file -- cached files: [/data/users/cbenoit/SAFIR_BREAST_LUNG/work/tmp/de/56c75e4dfbb1dfeafd3198d99c8bb2/sample_plan.csv]
+Dec-08 16:52:39.486 [Actor Thread 4] DEBUG nextflow.file.FileCollector - Deleting file collector temp dir: /scratch/7010105.torque6.curie.fr/nxf-481626652352562187
+Dec-08 16:52:39.524 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > checkDesign -- maxForks: 4; blocking: false
+Dec-08 16:52:39.553 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name fastQC
+Dec-08 16:52:39.554 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name fastQC
+Dec-08 16:52:39.555 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.555 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.556 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > fastQC -- maxForks: 4; blocking: false
+Dec-08 16:52:39.598 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:highCpu` matches label `highCpu` for process with name bwaMem
+Dec-08 16:52:39.598 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:highMem` matches label `highMem` for process with name bwaMem
+Dec-08 16:52:39.598 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.598 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.600 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > bwaMem -- maxForks: 4; blocking: false
+Dec-08 16:52:39.656 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:highCpu` matches label `highCpu` for process with name bowtie2
+Dec-08 16:52:39.657 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name bowtie2
+Dec-08 16:52:39.657 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.657 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.658 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > bowtie2 -- maxForks: 4; blocking: false
+Dec-08 16:52:39.686 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:highCpu` matches label `highCpu` for process with name star
+Dec-08 16:52:39.687 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:highMem` matches label `highMem` for process with name star
+Dec-08 16:52:39.687 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.687 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.688 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > star -- maxForks: 4; blocking: false
+Dec-08 16:52:39.701 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name bamSort
+Dec-08 16:52:39.701 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name bamSort
+Dec-08 16:52:39.701 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.701 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.703 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > bamSort -- maxForks: 4; blocking: false
+Dec-08 16:52:39.726 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name markDuplicates
+Dec-08 16:52:39.727 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name markDuplicates
+Dec-08 16:52:39.727 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.727 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.728 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > markDuplicates -- maxForks: 4; blocking: false
+Dec-08 16:52:39.754 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:lowCpu` matches label `lowCpu` for process with name preseq
+Dec-08 16:52:39.757 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name preseq
+Dec-08 16:52:39.757 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.757 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.776 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > preseq -- maxForks: 4; blocking: false
+Dec-08 16:52:39.809 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:lowCpu` matches label `lowCpu` for process with name bamFiltering
+Dec-08 16:52:39.813 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name bamFiltering
+Dec-08 16:52:39.815 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.815 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.817 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > bamFiltering -- maxForks: 4; blocking: false
+Dec-08 16:52:39.837 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name readsShifting
+Dec-08 16:52:39.837 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name readsShifting
+Dec-08 16:52:39.838 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.838 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.844 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > readsShifting -- maxForks: 4; blocking: false
+Dec-08 16:52:39.854 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:lowCpu` matches label `lowCpu` for process with name getFragmentSize
+Dec-08 16:52:39.855 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name getFragmentSize
+Dec-08 16:52:39.855 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.855 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.858 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > getFragmentSize -- maxForks: 4; blocking: false
+Dec-08 16:52:39.865 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [00/be3bd3] Cached process > fastQC (ID3)
+Dec-08 16:52:39.865 [Actor Thread 11] INFO  nextflow.processor.TaskProcessor - [61/1c0c4f] Cached process > bwaMem (ID3 on hg19)
+Dec-08 16:52:39.865 [Actor Thread 6] INFO  nextflow.processor.TaskProcessor - [02/163e77] Cached process > bwaMem (ID1 on hg19)
+Dec-08 16:52:39.865 [Actor Thread 10] INFO  nextflow.processor.TaskProcessor - [8c/ed9a7f] Cached process > bwaMem (ID2 on hg19)
+Dec-08 16:52:39.865 [Actor Thread 5] INFO  nextflow.processor.TaskProcessor - [e3/e9158e] Cached process > fastQC (ID1)
+Dec-08 16:52:39.866 [Actor Thread 7] INFO  nextflow.processor.TaskProcessor - [a6/89ec70] Cached process > fastQC (ID2)
+Dec-08 16:52:39.866 [Actor Thread 2] INFO  nextflow.processor.TaskProcessor - [ee/fbdcc5] Cached process > checkDesign (design.csv)
+Dec-08 16:52:39.867 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name bigWig
+Dec-08 16:52:39.883 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name bigWig
+Dec-08 16:52:39.884 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.884 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.885 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > bigWig -- maxForks: 4; blocking: false
+Dec-08 16:52:39.911 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name deepToolsComputeMatrix
+Dec-08 16:52:39.911 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name deepToolsComputeMatrix
+Dec-08 16:52:39.911 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.911 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.919 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > deepToolsComputeMatrix -- maxForks: 4; blocking: false
+Dec-08 16:52:39.939 [Actor Thread 2] DEBUG n.util.BlockingThreadExecutorFactory - Thread pool name=FileTransfer; maxThreads=12; maxQueueSize=36; keepAlive=1m
+Dec-08 16:52:39.945 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name deepToolsFingerprint
+Dec-08 16:52:39.945 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name deepToolsFingerprint
+Dec-08 16:52:39.946 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.946 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.947 [Actor Thread 15] INFO  nextflow.processor.TaskProcessor - [06/365ea2] Cached process > bamSort (ID3)
+Dec-08 16:52:39.955 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > deepToolsFingerprint -- maxForks: 4; blocking: false
+Dec-08 16:52:39.958 [Actor Thread 12] INFO  nextflow.processor.TaskProcessor - [46/d78153] Cached process > bamSort (ID2)
+Dec-08 16:52:39.964 [Actor Thread 18] INFO  nextflow.processor.TaskProcessor - [a0/5872f1] Cached process > bamSort (ID1)
+Dec-08 16:52:39.972 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name macs2
+Dec-08 16:52:39.972 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name macs2
+Dec-08 16:52:39.973 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:39.973 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:39.974 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > macs2 -- maxForks: 4; blocking: false
+Dec-08 16:52:39.998 [Actor Thread 20] INFO  nextflow.processor.TaskProcessor - [52/03e005] Cached process > markDuplicates (ID3)
+Dec-08 16:52:40.011 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name genrich
+Dec-08 16:52:40.011 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name genrich
+Dec-08 16:52:40.012 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:40.012 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:40.017 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > genrich -- maxForks: 4; blocking: false
+Dec-08 16:52:40.025 [Actor Thread 12] INFO  nextflow.processor.TaskProcessor - [24/43d224] Cached process > preseq (ID3)
+Dec-08 16:52:40.046 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name peakAnnoHomer
+Dec-08 16:52:40.049 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name peakAnnoHomer
+Dec-08 16:52:40.049 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:40.049 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:40.051 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > peakAnnoHomer -- maxForks: 4; blocking: false
+Dec-08 16:52:40.059 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name peakQC
+Dec-08 16:52:40.061 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name peakQC
+Dec-08 16:52:40.063 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:40.064 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:40.065 [Actor Thread 12] INFO  nextflow.processor.TaskProcessor - [5f/1a2b41] Cached process > markDuplicates (ID2)
+Dec-08 16:52:40.065 [Actor Thread 5] INFO  nextflow.processor.TaskProcessor - [b7/47f315] Cached process > markDuplicates (ID1)
+Dec-08 16:52:40.095 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > peakQC -- maxForks: 4; blocking: false
+Dec-08 16:52:40.098 [Actor Thread 7] INFO  nextflow.processor.TaskProcessor - [23/a7bb06] Cached process > preseq (ID1)
+Dec-08 16:52:40.106 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:lowCpu` matches label `lowCpu` for process with name prepareAnnotation
+Dec-08 16:52:40.107 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:lowMem` matches label `lowMem` for process with name prepareAnnotation
+Dec-08 16:52:40.107 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:40.107 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:40.109 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > prepareAnnotation -- maxForks: 4; blocking: false
+Dec-08 16:52:40.125 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medCpu` matches label `medCpu` for process with name featureCounts
+Dec-08 16:52:40.125 [main] DEBUG nextflow.script.ProcessConfig - Config settings `withLabel:medMem` matches label `medMem` for process with name featureCounts
+Dec-08 16:52:40.125 [main] DEBUG nextflow.executor.ExecutorFactory - << taskConfig executor: null
+Dec-08 16:52:40.125 [main] DEBUG nextflow.executor.ExecutorFactory - >> processorType: 'local'
+Dec-08 16:52:40.138 [main] DEBUG nextflow.processor.TaskProcessor - Creating *combiner* operator for each param(s) at index(es): [1]
+Dec-08 16:52:40.144 [main] DEBUG nextflow.processor.TaskProcessor - Creating operator > featureCounts -- maxForks: 4; blocking: false
+Dec-08 16:52:40.146 [main] WARN  nextflow.script.ScriptBinding - Access to undefined parameter `skipGenrichPeakCalling` -- Initialise it to a default value eg. `params.skipGenrichPeakCalling = some_value`
+Dec-08 16:52:40.162 [main] DEBUG nextflow.Session - Session aborted -- Cause: Not a valid process label: IDR Replicates -- Label must consist of alphanumeric characters or '_', must start with an alphabetic character and must end with an alphanumeric character
+Dec-08 16:52:40.197 [main] DEBUG nextflow.Session - The following nodes are still active:
+[process] preseq
+  status=ACTIVE
+  port 0: (queue) closed; channel: -
+  port 1: (cntrl) -     ; channel: $
+
+[process] bamFiltering
+  status=ACTIVE
+  port 0: (queue) closed; channel: -
+  port 1: (value) bound ; channel: bed
+  port 2: (cntrl) -     ; channel: $
+
+[process] readsShifting
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (cntrl) -     ; channel: $
+
+[process] getFragmentSize
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (cntrl) -     ; channel: $
+
+[process] bigWig
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: BLbed
+  port 2: (cntrl) -     ; channel: $
+
+[process] deepToolsComputeMatrix
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: geneBed
+  port 2: (cntrl) -     ; channel: $
+
+[process] deepToolsFingerprint
+  status=ACTIVE
+  port 0: (value) OPEN  ; channel: allBams
+  port 1: (value) OPEN  ; channel: allBai
+  port 2: (value) OPEN  ; channel: allPrefix
+  port 3: (cntrl) -     ; channel: $
+
+[process] macs2
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: peakCountHeader
+  port 2: (value) bound ; channel: fripScoreHeader
+  port 3: (cntrl) -     ; channel: $
+
+[process] genrich
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: peakCountHeader
+  port 2: (value) bound ; channel: fripScoreHeader
+  port 3: (cntrl) -     ; channel: $
+
+[process] peakAnnoHomer
+  status=ACTIVE
+  port 0: (queue) OPEN  ; channel: -
+  port 1: (value) bound ; channel: gtfFile
+  port 2: (value) bound ; channel: fastaFile
+  port 3: (cntrl) -     ; channel: $
+
+[process] peakQC
+  status=ACTIVE
+  port 0: (value) OPEN  ; channel: peaks
+  port 1: (value) OPEN  ; channel: annotations
+  port 2: (queue) OPEN  ; channel: peakHeader
+  port 3: (cntrl) -     ; channel: $
+
+[process] prepareAnnotation
+  status=ACTIVE
+  port 0: (value) bound ; channel: bed
+  port 1: (cntrl) -     ; channel: $
+
+[process] featureCounts
+  status=ACTIVE
+  port 0: (value) OPEN  ; channel: bams
+  port 1: (value) OPEN  ; channel: __$eachinparam<1>
+  port 2: (cntrl) -     ; channel: $
+
+Dec-08 16:52:40.217 [main] ERROR nextflow.cli.Launcher - @unknown
+nextflow.exception.IllegalConfigException: Not a valid process label: IDR Replicates -- Label must consist of alphanumeric characters or '_', must start with an alphabetic character and must end with an alphanumeric character
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:490)
+	at org.codehaus.groovy.reflection.CachedConstructor.invoke(CachedConstructor.java:80)
+	at org.codehaus.groovy.reflection.CachedConstructor.doConstructorInvoke(CachedConstructor.java:74)
+	at org.codehaus.groovy.runtime.callsite.ConstructorSite$ConstructorSiteNoUnwrap.callConstructor(ConstructorSite.java:84)
+	at org.codehaus.groovy.runtime.callsite.CallSiteArray.defaultCallConstructor(CallSiteArray.java:59)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.callConstructor(AbstractCallSite.java:237)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.callConstructor(AbstractCallSite.java:249)
+	at nextflow.script.ProcessConfig.label(ProcessConfig.groovy:663)
+	at jdk.internal.reflect.GeneratedMethodAccessor117.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:101)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:323)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:351)
+	at org.codehaus.groovy.runtime.callsite.PogoMetaClassSite.callCurrent(PogoMetaClassSite.java:64)
+	at org.codehaus.groovy.runtime.callsite.CallSiteArray.defaultCallCurrent(CallSiteArray.java:51)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.callCurrent(AbstractCallSite.java:156)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.callCurrent(AbstractCallSite.java:168)
+	at Script_310b51f0$_runScript_closure75.doCall(Script_310b51f0:1349)
+	at Script_310b51f0$_runScript_closure75.doCall(Script_310b51f0)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.codehaus.groovy.reflection.CachedMethod.invoke(CachedMethod.java:101)
+	at groovy.lang.MetaMethod.doMethodInvoke(MetaMethod.java:323)
+	at org.codehaus.groovy.runtime.metaclass.ClosureMetaClass.invokeMethod(ClosureMetaClass.java:263)
+	at groovy.lang.MetaClassImpl.invokeMethod(MetaClassImpl.java:1041)
+	at groovy.lang.Closure.call(Closure.java:405)
+	at groovy.lang.Closure.call(Closure.java:399)
+	at nextflow.script.ProcessFactory.createProcessor(ProcessFactory.groovy:110)
+	at nextflow.script.ProcessFactory$createProcessor.call(Unknown Source)
+	at org.codehaus.groovy.runtime.callsite.CallSiteArray.defaultCall(CallSiteArray.java:47)
+	at nextflow.script.ProcessFactory$createProcessor.call(Unknown Source)
+	at nextflow.script.BaseScript.process(BaseScript.groovy:104)
+	at jdk.internal.reflect.GeneratedMethodAccessor228.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.codehaus.groovy.runtime.callsite.PlainObjectMetaMethodSite.doInvoke(PlainObjectMetaMethodSite.java:43)
+	at org.codehaus.groovy.runtime.callsite.PogoMetaMethodSite$PogoCachedMethodSiteNoUnwrapNoCoerce.invoke(PogoMetaMethodSite.java:190)
+	at org.codehaus.groovy.runtime.callsite.PogoMetaMethodSite.callCurrent(PogoMetaMethodSite.java:58)
+	at org.codehaus.groovy.runtime.callsite.CallSiteArray.defaultCallCurrent(CallSiteArray.java:51)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.callCurrent(AbstractCallSite.java:156)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.callCurrent(AbstractCallSite.java:176)
+	at Script_310b51f0.runScript(Script_310b51f0:1347)
+	at nextflow.script.BaseScript.runDsl1(BaseScript.groovy:153)
+	at nextflow.script.BaseScript.run(BaseScript.groovy:189)
+	at nextflow.script.ScriptParser.runScript(ScriptParser.groovy:225)
+	at nextflow.script.ScriptRunner.run(ScriptRunner.groovy:218)
+	at nextflow.script.ScriptRunner.execute(ScriptRunner.groovy:126)
+	at nextflow.cli.CmdRun.run(CmdRun.groovy:273)
+	at nextflow.cli.Launcher.run(Launcher.groovy:460)
+	at nextflow.cli.Launcher.main(Launcher.groovy:642)
+Dec-08 16:52:40.225 [Actor Thread 3] INFO  nextflow.processor.TaskProcessor - [04/1129da] Cached process > preseq (ID2)
+Dec-08 16:52:40.233 [Actor Thread 6] INFO  nextflow.processor.TaskProcessor - [f4/924463] Cached process > bamFiltering (ID2)
+Dec-08 16:52:40.239 [Actor Thread 8] INFO  nextflow.processor.TaskProcessor - [6c/853077] Cached process > bamFiltering (ID1)
+Dec-08 16:52:40.240 [Actor Thread 9] INFO  nextflow.processor.TaskProcessor - [9d/fc7deb] Cached process > bamFiltering (ID3)
+Dec-08 16:52:40.241 [Actor Thread 12] INFO  nextflow.processor.TaskProcessor - [df/f263c4] Cached process > prepareAnnotation

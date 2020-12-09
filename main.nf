@@ -804,8 +804,8 @@ process bamFiltering {
   file bed from chGeneBed.collect()
 
   output:
-  set val(prefix), file("*filtered.{bam,bam.bai}") into chFilteredBams
-  set val(prefix), file("*filtered.flagstat") into chFilteredFlagstat
+  set val(prefix), file("*filtered.{bam,bam.bai}") into chFilteredBams, chFilteredMacs2NotShiftedBams, chFilteredGenrichNotShiftedBams
+  set val(prefix), file("*filtered.flagstat") into chFilteredFlagstat, chFilteredMacs2NotShiftedFlagstat, chFilteredGenrichNotShiftedFlagstat
   file "*raw.idxstats" into chRawStats
   file "*filtered.{idxstats,stats}" into chFilteredStats
   file("v_samtools.txt") into chSamtoolsVersionBamFiltering
@@ -1091,7 +1091,7 @@ process macs2 {
   label 'macs2'
   label 'medCpu'
   label 'medMem'
-  publishDir path: "${params.outDir}/peakCalling/", mode: 'copy',
+  publishDir path: "${params.outDir}/peakCalling/Macs2", mode: 'copy',
     saveAs: { filename ->
             if (filename.endsWith(".tsv")) "stats/$filename"
             else filename
@@ -1102,12 +1102,17 @@ process macs2 {
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacs.join(chFilteredMacs2Flagstat)
+  file(bamN) from chFilteredMacs2NotShiftedBams
+                                                  .join(chFilteredMacs2NotShiftedFlagstat)
+                                                  .map{ row -> row[1]}
+                                                                                     
   file peakCountHeader from chPeakCountHeaderMacs2Sharp.collect()
   file fripScoreHeader from chFripScoreHeaderMacs2Sharp.collect()
 
   output:
   file("*.xls") into chMacsOutputSharp
   set val(prefix), file("*Macs2_peaks.narrowPeak"), val("Macs2") into chPeaksMacs
+  set val(prefix), file("*Macs2NotPreshifted_peaks.narrowPeak"), val("Macs2NotPreShifted") into chPeaksMacsNotPreShifted
   file "*_mqc.tsv" into chMacsCountsSharp
   file("v_macs2.txt") into chMacs2VersionMacs2Sharp
 
@@ -1115,6 +1120,7 @@ process macs2 {
   format = params.singleEnd ? "BAM" : "BAMPE"
   """
   echo \$(macs2 --version 2>&1) &> v_macs2.txt
+  ######### Preshifted reads Peak calling ##########
   macs2 callpeak \\
     -t ${bam[0]} \\
     -f $format \\
@@ -1125,6 +1131,18 @@ process macs2 {
   cat ${prefix}_Macs2_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Macs2_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Macs2_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
   grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Macs2_peaks.FRiP_mqc.tsv
+
+  ######### Not Preshifted reads Peak calling ##########
+  macs2 callpeak \\
+    -t ${bamN[0]} \\
+    -f BAM \\
+    -g $params.effGenomeSize \\
+    -n ${prefix}_Macs2NotPreshifted \\
+    --SPMR --trackline --bdg \\
+    --keep-dup all --shift 75 --extsize 150 --nomodel --call-summits
+  cat ${prefix}_Macs2NotPreshifted_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Macs2NotPreshifted_peaks.count_mqc.tsv
+  READS_IN_PEAKS=\$(intersectBed -a ${bamN[0]} -b ${prefix}_Macs2NotPreshifted_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Macs2NotPreshifted_peaks.FRiP_mqc.tsv
   """
  }
 
@@ -1143,7 +1161,7 @@ process genrich {
   label 'genrich'
   label 'medCpu'
   label 'medMem'
-  publishDir path: "${params.outDir}/peakCalling/", mode: 'copy',
+  publishDir path: "${params.outDir}/peakCalling/Genrich", mode: 'copy',
     saveAs: { filename ->
             if (filename.endsWith(".tsv")) "stats/$filename"
             else filename
@@ -1154,26 +1172,41 @@ process genrich {
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
+  file(bamN) from chFilteredGenrichNotShiftedBams
+                                                                           .join(chFilteredGenrichNotShiftedFlagstat)
+                                                                           .map{ row -> row[1]}
   file peakCountHeader from chPeakCountHeaderGenrichSharp.collect()
   file fripScoreHeader from chFripScoreHeaderGenrichSharp.collect()
 
   output:
   //file("*.xls") into chGenrichOutputSharp
   set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chPeaksGenrich
+  set val(prefix), file("*Genrich_NotPreshifted_peaks.narrowPeak"), val("GenrichNotPreShifted") into chPeaksGenrichNotPreShifted
   file "*_mqc.tsv" into chGenrichCountsSharp
   file("v_genrich.txt") into chGenrichVersionSharp
 
  script:
   format = params.singleEnd ? "BAM" : "BAMPE"
   """
-  samtools sort -n -@ ${task.cpus} -o ${prefix}_nsorted.bam ${bam[0]} 
   echo \$(Genrich --version) &> v_genrich.txt
-  Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak  -j
 
+  ######### Preshifted reads Peak calling ##########
+  samtools sort -n -@ ${task.cpus} -o ${prefix}_nsorted.bam ${bam[0]} 
+
+  Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak  -j
 
   cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Genrich_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
   grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Genrich_peaks.FRiP_mqc.tsv
+
+  ######### Not Preshifted reads Peak calling ##########
+  samtools sort -n -@ ${task.cpus} -o ${prefix}_NotPreshifted_nsorted.bam ${bamN[0]}
+
+  Genrich -t ${prefix}_NotPreshifted_nsorted.bam -o ${prefix}_Genrich_NotPreshifted_peaks.narrowPeak  -j -y -d 150
+
+  cat ${prefix}_Genrich_NotPreshifted_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Genrich_NotPreshifted_peaks.count_mqc.tsv
+  READS_IN_PEAKS=\$(intersectBed -a ${bamN[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Genrich_NotPreshifted_peaks.FRiP_mqc.tsv
   """
  }
 

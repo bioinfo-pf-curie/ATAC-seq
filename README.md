@@ -66,7 +66,6 @@ References           If not specified in the configuration file or you wish to o
 Alignment:
 --aligner [str]                    Alignment tool to use ['bwa-mem', 'star', 'bowtie2']. Default: 'bwa-mem'
 --saveAlignedIntermediates [bool]  Save all intermediates mapping files. Default: false  
---starIndex [file]                 Index for STAR aligner
 --bwaIndex [file]                  Index for Bwa-mem aligner
 --bowtie2Index [file]              Index for Bowtie2 aligner
 

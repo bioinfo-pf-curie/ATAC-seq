@@ -54,7 +54,6 @@ def helpMessage() {
   Alignment:
   --aligner [str]                    Alignment tool to use ['bwa-mem', 'star', 'bowtie2']. Default: 'bwa-mem'
   --saveAlignedIntermediates [bool]  Save all intermediates mapping files. Default: false  
-  --starIndex [file]                 Index for STAR aligner
   --bwaIndex [file]                  Index for Bwa-mem aligner
   --bowtie2Index [file]              Index for Bowtie2 aligner
 
@@ -180,21 +179,6 @@ if (params.bt2Index){
     .set { chBt2Index }
 } else {
   exit 1, "Bowtie2 index file not found: ${params.bt2Index}"
-}
-
-/********************
- * STAR indexes
- */
-
-params.starIndex = genomeRef ? params.genomes[ genomeRef ].starIndex ?: false : false
-if (params.starIndex){
-  Channel
-    .fromPath(params.starIndex, checkIfExists: true)
-    .ifEmpty {exit 1, "STAR index file not found: ${params.starIndex}"}
-    .combine( [ genomeRef ] ) 
-    .set { chStarIndex }
-} else {
-  exit 1, "STAR index file not found: ${params.starIndex}"
 }
 
 /*********************
@@ -348,7 +332,7 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-         .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2; rawReadsBt2; rawReadsSTAR; planMultiQC }
+         .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2; rawReadsBt2; planMultiQC }
    }else if (!params.singleEnd && !params.inputBam){
       Channel
          .from(file("${params.samplePlan}"))
@@ -356,7 +340,7 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2]), file(row[3])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-         .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2 ;rawReadsBt2; rawReadsSTAR; planMultiQC }
+         .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2 ;rawReadsBt2; planMultiQC }
    }else{
       Channel
          .from(file("${params.samplePlan}"))
@@ -375,7 +359,7 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-            .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2;rawReadsBt2; rawReadsSTAR; planMultiQC }
+            .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2;rawReadsBt2; planMultiQC }
     } else {
         Channel
             .from(params.readPaths)
@@ -383,7 +367,7 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-            .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2; rawReadsBt2; rawReadsSTAR; planMultiQC }
+            .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2; rawReadsBt2; planMultiQC }
     }
 } else {
     Channel
@@ -391,7 +375,7 @@ if(params.samplePlan){
         .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nNB: Path requires at least one * wildcard!\nIf this is single-end data, please specify --singleEnd on the command line." }
         //.join(chDesignCsv2)
         //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-        .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; rawReadsSTAR; planMultiQC }
+        .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
 }
 
 
@@ -609,44 +593,6 @@ process bowtie2{
           --very-sensitive --end-to-end --reorder \\
            -x ${index}/${genomeBase} \\
           $readCommand > ${sample}.bam 2> ${sample}_bowtie2.log
-  """
-}
-
-/* STAR */
-process star{
-  tag "${sample} on ${genomeBase}"
-  label 'star'
-  label 'highCpu'
-  label 'highMem'
-  publishDir "${params.outDir}/mapping", mode: 'copy',
-             saveAs: {filename ->
-	     if (filename.indexOf(".log") > 0) "logs/$filename"  
- 	     else if (params.saveAlignedIntermediates) filename}
-  when:
-  params.aligner == "star" && !params.inputBam
-
-  input:
-  set val(sample), file(reads), file(index), val(genomeBase) from rawReadsSTAR.combine(chStarIndex)
-
-  output:
-  set val(sample), file('*.bam') into chAlignReadsStar
-  file ("*Log.final.out") into chStarMqc
-  file("v_star.txt") into chStarVersion
-
-  script:
-  """
-  STAR --version &> v_star.txt
-  STAR --genomeDir $index \
-       --readFilesIn $reads \
-       --runThreadN ${task.cpus} \
-       --runMode alignReads \
-       --outSAMtype BAM Unsorted \
-       --readFilesCommand zcat \
-       --runDirPerm All_RWX \
-       --outSAMunmapped Within \
-       --outTmpDir /local/scratch/atacseq_\$(date +%d%s%S%N) \
-       --outFileNamePrefix $sample  \
-       --outSAMattrRGline ID:$sample SM:$sample LB:Illumina PL:Illumina
   """
 }
 

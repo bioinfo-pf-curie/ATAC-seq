@@ -192,7 +192,6 @@ module_order:
    - bowtie2:
       name: 'Bowtie2'
       info: 'alignment of raw sequencing reads on the reference genome.'
-   - star
    - picard:
       name: 'Fragment size'
       info: ' shows nucleosome occupancy. Fragment lengths lower than 100bp usually represent nucleosome free regions. Then, the fragment size distribution is expected to have a clear periodicity related to nucleosome occupancy (mono-, di-, tri-nucleosome, etc.)'
@@ -230,8 +229,6 @@ report_section_order:
     order: 800
   bowtie2:
     order: 790
-  star:
-    order: 780
   picard:
     order: 600
   peak_count:

@@ -63,6 +63,9 @@ def helpMessage() {
   --keepSingleton [bool]             Keep unpaired reads. Default: false
   --blacklist [file]                 Path to black list regions (.bed).
 
+  Calling:
+  --extsize [int]                    Value to use for extsize parameter during Macs2 calling. Default : 150. Shift parameter will be set up as extsize/2
+
   Annotation:          If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
   --genomeAnnotationPath             Path to genome annotations.
   --geneBed [file]                   BED annotation file with gene coordinate.
@@ -224,6 +227,14 @@ if (params.blacklist) {
  */
 
 //Peak Calling
+
+if (!params.extsize) {
+  log.warn "=================================================================\n" +
+            "  WARNING! Missing value for extsize parameter.\n" +
+            "  Macs2 Peak calling and annotation will be skipped.\n" +
+            "  Please specify value for '--extsize integer' to run these steps.\n" +
+            "================================================================"
+}
 params.effGenomeSize = genomeRef ? params.genomes[ genomeRef ].effGenomeSize ?: false : false
 if (!params.effGenomeSize) {
   log.warn "=================================================================\n" +
@@ -1044,7 +1055,7 @@ process macs2 {
             }
  
   when:
-  !params.skipPeakCalling && params.effGenomeSize
+  !params.skipPeakCalling && params.effGenomeSize && params.extsize
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacs.join(chFilteredMacs2Flagstat)
@@ -1079,13 +1090,14 @@ process macs2 {
   grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Macs2_peaks.FRiP_mqc.tsv
 
   ######### Not Preshifted reads Peak calling ##########
+  shift=\$(expr ${params.extsize} / 2 )
   macs2 callpeak \\
     -t ${bamN[0]} \\
     -f BAM \\
     -g $params.effGenomeSize \\
     -n ${prefix}_Macs2NotPreshifted \\
     --SPMR --trackline --bdg \\
-    --keep-dup all --shift 75 --extsize 150 --nomodel --call-summits
+    --keep-dup all --shift -\${shift} --extsize ${params.extsize} --nomodel --call-summits
   cat ${prefix}_Macs2NotPreshifted_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Macs2NotPreshifted_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bamN[0]} -b ${prefix}_Macs2NotPreshifted_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
   grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Macs2NotPreshifted_peaks.FRiP_mqc.tsv
@@ -1391,7 +1403,6 @@ process getSoftwareVersions{
   file 'v_fastqc.txt' from chFastqcVersion.first().ifEmpty([])
   file 'v_bwa.txt' from chBwaVersion.first().ifEmpty([])
   file 'v_bowtie2.txt' from chBowtie2Version.first().ifEmpty([])
-  file 'v_star.txt' from chStarVersion.first().ifEmpty([])
   file 'v_samtools.txt' from chSamtoolsVersionBamSort.concat(chSamtoolsVersionBamFiltering).first().ifEmpty([])
   file 'v_picard.txt' from chPicardVersion.first().ifEmpty([])
   file 'v_macs2.txt' from chMacs2VersionMacs2Sharp.first().ifEmpty([])

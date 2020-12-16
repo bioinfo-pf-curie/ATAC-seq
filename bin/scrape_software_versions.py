@@ -21,6 +21,7 @@ regexes = {
     'R': ['v_R.txt', r"R version (\S+)"],
     'DESeq2': ['v_DESeq2.txt', r"[1] (\S+)"],
     'MACS2': ['v_macs2.txt', r"macs2 (\S+)"],
+    'Genrich' : ["v_genrich.txt",r"genrich (\$+)"],
     'epic2': ['v_epic2.txt', r"(\S+)"],
     'idr': ['v_idr.txt', r"IDR (\S+)"]
 }
@@ -42,6 +43,7 @@ results['deeptools'] = '<span style="color:#999999;\">N/A</span>'
 results['R'] = '<span style="color:#999999;\">N/A</span>'
 results['DESeq2'] = '<span style="color:#999999;\">N/A</span>'
 results['MACS2'] = '<span style="color:#999999;\">N/A</span>'
+results['Genrich'] = '<span style="color:#999999;\">N/A</span>'
 results['epic2'] = '<span style="color:#999999;\">N/A</span>'
 results['idr'] = '<span style="color:#999999;\">N/A</span>'
 

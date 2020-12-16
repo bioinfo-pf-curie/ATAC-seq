@@ -1,2 +1,0 @@
-2020-10-27 13:56:03	-	marvelous_roentgen	-	ecc1485f50dcc0a3baf573b6e8bc59fa	119fe8f5-a4fd-4473-bc66-73ec4c0b11ba	nextflow run /data/users/cbenoit/Documents/ATACseq/atac-seq/main.nf -dump-channels chPeakHomer,designreads,cbams,flag_bam_join -resume -profile test --outdir results_test/
-2020-10-27 14:02:41	15m 29s	wise_franklin	ERR	ecc1485f50dcc0a3baf573b6e8bc59fa	119fe8f5-a4fd-4473-bc66-73ec4c0b11ba	nextflow run /data/users/cbenoit/Documents/ATACseq/atac-seq/main.nf -dump-channels chPeakHomer,designreads,cbams,flag_bam_join -resume -profile test --outdir results_test/

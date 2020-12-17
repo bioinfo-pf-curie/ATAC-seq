@@ -22,6 +22,7 @@ dependencies:
   - bioconda::subread=2.0.0
   - bioconda::homer=4.10
   - bioconda::idr=2.0.4.2
+  - bioconda::genrich=0.6=hed695b0_0
 
   # R-packages
   - r-base=3.4.1

@@ -52,7 +52,7 @@ def helpMessage() {
   --fasta [file]                     Path to Fasta reference
 
   Alignment:
-  --aligner [str]                    Alignment tool to use ['bwa-mem', 'star', 'bowtie2']. Default: 'bwa-mem'
+  --aligner [str]                    Alignment tool to use ['bwa-mem', 'bowtie2']. Default: 'bwa-mem'
   --saveAlignedIntermediates [bool]  Save all intermediates mapping files. Default: false  
   --bwaIndex [file]                  Index for Bwa-mem aligner
   --bowtie2Index [file]              Index for Bowtie2 aligner
@@ -64,7 +64,7 @@ def helpMessage() {
   --blacklist [file]                 Path to black list regions (.bed).
 
   Calling:
-  --extsize [int]                    Value to use for extsize parameter during Macs2 calling. Default : 150. Shift parameter will be set up as extsize/2
+  --extsize [int]                    Value to use for extsize parameter during Macs calling. Default : 150. Shift parameter will be set up as extsize/2
 
   Annotation:          If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
   --genomeAnnotationPath             Path to genome annotations.
@@ -77,8 +77,8 @@ def helpMessage() {
   --skipFastqc [bool]                Skips fastQC
   --skipPreseq [bool]                Skips preseq QC
   --skipDeepTools [bool]             Skips deeptools QC
-  --skipPeakcalling [bool]           Skips peak calling
-  --skipPeakanno [bool]              Skips peak annotation
+  --skipPeakCalling [bool]           Skips peak calling
+  --skipPeakAnno [bool]              Skips peak annotation
   --skipFeatCounts [bool]            Skips feature count
   --skipMultiQC [bool]               Skips MultiQC step
   --skipShift [bool]                 Skips reads shifting step
@@ -227,14 +227,6 @@ if (params.blacklist) {
  */
 
 //Peak Calling
-
-if (!params.extsize) {
-  log.warn "=================================================================\n" +
-            "  WARNING! Missing value for extsize parameter.\n" +
-            "  Macs2 Peak calling and annotation will be skipped.\n" +
-            "  Please specify value for '--extsize integer' to run these steps.\n" +
-            "================================================================"
-}
 params.effGenomeSize = genomeRef ? params.genomes[ genomeRef ].effGenomeSize ?: false : false
 if (!params.effGenomeSize) {
   log.warn "=================================================================\n" +
@@ -246,13 +238,11 @@ if (!params.effGenomeSize) {
 
 Channel
   .fromPath("$baseDir/assets/peak_count_header.txt")
-  //.set { chPeakCountHeaderSharp }
-  .into { chPeakCountHeaderMacs2Sharp; chPeakCountHeaderGenrichSharp }
+  .into { chPeakCountHeaderMacs; chPeakCountHeaderMacsShift; chPeakCountHeaderGenrich; chPeakCountHeaderGenrichShift }
 
 Channel
   .fromPath("$baseDir/assets/frip_score_header.txt")
-  //.set { chFripScoreHeaderSharp }
-  .into { chFripScoreHeaderMacs2Sharp; chFripScoreHeaderGenrichSharp }
+  .into { chFripScoreHeaderMacs; chFripScoreHeaderMacsShift; chFripScoreHeaderGenrich; chFripScoreHeaderGenrichShift }
 
 
 Channel
@@ -466,6 +456,10 @@ if (params.design){
     .dump(tag : 'chDesignControl')
     .into { chDesignControl; chDesignControlGenrich; chDesignControlGroups; chDesignControlGroupsGenrich }
 }else{
+  chDesignControl = Channel.empty()
+  chDesignControlGenrich = Channel.empty()
+  chDesignControlGroups = Channel.empty()
+  chDesignControlGroupsGenrich = Channel.empty()
   chDesignCheck = Channel.empty()
   chDesignMqc = Channel.empty()
 }
@@ -761,8 +755,8 @@ process bamFiltering {
   file bed from chGeneBed.collect()
 
   output:
-  set val(prefix), file("*filtered.{bam,bam.bai}") into chFilteredBams, chFilteredMacs2NotShiftedBams, chFilteredGenrichNotShiftedBams
-  set val(prefix), file("*filtered.flagstat") into chFilteredFlagstat, chFilteredMacs2NotShiftedFlagstat, chFilteredGenrichNotShiftedFlagstat
+  set val(prefix), file("*filtered.{bam,bam.bai}") into chFilteredBams
+  set val(prefix), file("*filtered.flagstat") into chFilteredFlagstat
   file "*raw.idxstats" into chRawStats
   file "*filtered.{idxstats,stats}" into chFilteredStats
   file("v_samtools.txt") into chSamtoolsVersionBamFiltering
@@ -788,9 +782,6 @@ process bamFiltering {
   $nameSortBam
   """
 }
-
-chFilteredFlagstat
-                 .into{ chFilteredMacs2Flagstat;chFilteredGenrichFlagstat }
 
 
 /*
@@ -822,15 +813,25 @@ process readsShifting {
   """
 }
 
-chShiftBams
-  .ifEmpty(chFilteredBams)
-  .dump(tag : 'cbams')
-  .into{ chBamsFragSize;
-  	 chBamsMacs;chBamsGenrich
-         chBamsBigWig;
-         chBamDTCor ; chBaiDTCor; chSampleDTCor ;
-         chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
-         chBamsCounts }
+if (! params.skipShift){
+  chShiftBams
+    .dump(tag : 'fbams')
+    .into{ chBamsFragSize;
+           chBamsMacs; chBamsMacsShift; chBamsGenrich; chBamsGenrichShift;
+           chBamsBigWig;
+           chBamDTCor ; chBaiDTCor; chSampleDTCor ;
+           chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
+           chBamsCounts }
+}else{
+  chFilteredBams
+    .dump(tag : 'fbams')
+    .into{ chBamsFragSize;
+           chBamsMacs; chBamsMacsShift; chBamGenrich; chBamsGenrichShift;
+           chBamsBigWig;
+           chBamDTCor ; chBaiDTCor; chSampleDTCor ;
+           chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
+           chBamsCounts }
+}
 
 /*
  * Get fragment sizes
@@ -1039,8 +1040,10 @@ process deepToolsFingerprint{
  * Peak calling 
  */
 
+(chFilteredMacsFlagstat, chFilteredMacsShiftFlagstat, chFilteredGenrichFlagstat, chFilteredGenrichShiftFlagstat) = chFilteredFlagstat.into(4)
+
 /*
- * MACS2 - sharp mode
+ * MACS2
  */
 
 process macs2 {
@@ -1048,67 +1051,90 @@ process macs2 {
   label 'macs2'
   label 'medCpu'
   label 'medMem'
-  publishDir path: "${params.outDir}/peakCalling/Macs2", mode: 'copy',
-    saveAs: { filename ->
-            if (filename.endsWith(".tsv")) "stats/$filename"
-            else filename
-            }
+  publishDir path: "${params.outDir}/peakCalling/macs2", mode: 'copy',
+    saveAs: { filename -> if (filename.endsWith(".tsv")) "stats/$filename"
+                          else filename }
  
   when:
   !params.skipPeakCalling && params.effGenomeSize && params.extsize
 
   input:
-  set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacs.join(chFilteredMacs2Flagstat)
-  file(bamN) from chFilteredMacs2NotShiftedBams
-                                                  .join(chFilteredMacs2NotShiftedFlagstat)
-                                                  .map{ row -> row[1]}
-                                                                                     
-  file peakCountHeader from chPeakCountHeaderMacs2Sharp.collect()
-  file fripScoreHeader from chFripScoreHeaderMacs2Sharp.collect()
+  set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacs.join(chFilteredMacsFlagstat)
+  file peakCountHeader from chPeakCountHeaderMacs.collect()
+  file fripScoreHeader from chFripScoreHeaderMacs.collect()
 
   output:
-  file("*.xls") into chMacsOutputSharp
-  set val(prefix), file("*Macs2_peaks.narrowPeak"), val("Macs2") into chPeaksMacs
-  set val(prefix), file("*Macs2NotPreshifted_peaks.narrowPeak"), val("Macs2NotPreShifted") into chPeaksMacsNotPreShifted
-  file "*_mqc.tsv" into chMacsCountsSharp
-  file("v_macs2.txt") into chMacs2VersionMacs2Sharp
+  file("*.xls") into chMacsOutput
+  set val(prefix), file("*macs2_peaks.narrowPeak"), val("macs2") into chMacsPeaks
+  file "*_mqc.tsv" into chMacsCounts
+  file("v_macs2.txt") into chMacsVersion
 
   script:
   format = params.singleEnd ? "BAM" : "BAMPE"
   """
   echo \$(macs2 --version 2>&1) &> v_macs2.txt
-  ######### Preshifted reads Peak calling ##########
+
+  ######### Peak calling at the fragment level ##########
   macs2 callpeak \\
     -t ${bam[0]} \\
     -f $format \\
     -g $params.effGenomeSize \\
-    -n ${prefix}_Macs2 \\
+    -n ${prefix}_macs2 \\
     --SPMR --trackline --bdg \\
     --keep-dup all --nomodel --call-summits
-  cat ${prefix}_Macs2_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Macs2_peaks.count_mqc.tsv
-  READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Macs2_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Macs2_peaks.FRiP_mqc.tsv
+ 
+  cat ${prefix}_macs2_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_macs2_peaks.count_mqc.tsv
+  READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_macs2_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_macs2_peaks.FRiP_mqc.tsv
+  """
+}
 
-  ######### Not Preshifted reads Peak calling ##########
+process macs2Shift {
+  tag "${prefix}"
+  label 'macs2'
+  label 'medCpu'
+  label 'medMem'
+  publishDir path: "${params.outDir}/peakCalling/MacsShift", mode: 'copy',
+    saveAs: { filename -> if (filename.endsWith(".tsv")) "stats/$filename"
+                          else filename }
+ 
+  when:
+  !params.skipPeakCalling && params.effGenomeSize && params.extsize
+
+  input:
+  set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacsShift.join(chFilteredMacsShiftFlagstat)
+  file peakCountHeader from chPeakCountHeaderMacsShift.collect()
+  file fripScoreHeader from chFripScoreHeaderMacsShift.collect()
+
+  output:
+  file("*.xls") into chMacsShiftOutput
+  set val(prefix), file("*macs2Shift_peaks.narrowPeak"), val("macs2Shifted") into chMacsShiftPeaks
+  file "*_mqc.tsv" into chMacsShifCounts
+  file("v_macs2.txt") into chMacsShifVersion
+
+  script:
+  format = params.singleEnd ? "BAM" : "BAMPE"
+  """
+  echo \$(macs2 --version 2>&1) &> v_macs2.txt
+
+  ## Convert bam to bed
+  bamToBed -i ${bam[0]} > {bam[0].baseName}.bed
+
+  ######### Peak calling at the cutting site ##########
   shift=\$(expr ${params.extsize} / 2 )
   macs2 callpeak \\
-    -t ${bamN[0]} \\
-    -f BAM \\
+    -t {bam[0].baseName}.bed \\
+    -f BED \\
     -g $params.effGenomeSize \\
-    -n ${prefix}_Macs2NotPreshifted \\
+    -n ${prefix}_macs2Shift \\
     --SPMR --trackline --bdg \\
     --keep-dup all --shift -\${shift} --extsize ${params.extsize} --nomodel --call-summits
-  cat ${prefix}_Macs2NotPreshifted_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Macs2NotPreshifted_peaks.count_mqc.tsv
-  READS_IN_PEAKS=\$(intersectBed -a ${bamN[0]} -b ${prefix}_Macs2NotPreshifted_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Macs2NotPreshifted_peaks.FRiP_mqc.tsv
+  cat ${prefix}_macs2Shift_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_macs2Shift_peaks.count_mqc.tsv
+  READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_macs2Shift_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_macs2Shift_peaks.FRiP_mqc.tsv
   """
  }
 
-/*
-chPeaksMacs
-  .dump(tag : 'chPeakHomer')
-  .into{ chPeaksHomer; chPeakMacs2QC; chMacs2IDR }
-*/
 
 /*
  * GENRICH - sharp mode
@@ -1120,35 +1146,27 @@ process genrich {
   label 'medCpu'
   label 'medMem'
   publishDir path: "${params.outDir}/peakCalling/Genrich", mode: 'copy',
-    saveAs: { filename ->
-            if (filename.endsWith(".tsv")) "stats/$filename"
-            else filename
-            }
+    saveAs: { filename -> if (filename.endsWith(".tsv")) "stats/$filename"
+            else filename }
 
   when:
   !params.skipGenrichPeakCalling && params.effGenomeSize
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
-  file(bamN) from chFilteredGenrichNotShiftedBams
-                                                                           .join(chFilteredGenrichNotShiftedFlagstat)
-                                                                           .map{ row -> row[1]}
-  file peakCountHeader from chPeakCountHeaderGenrichSharp.collect()
-  file fripScoreHeader from chFripScoreHeaderGenrichSharp.collect()
+  file peakCountHeader from chPeakCountHeaderGenrich.collect()
+  file fripScoreHeader from chFripScoreHeaderGenrich.collect()
 
   output:
-  //file("*.xls") into chGenrichOutputSharp
-  set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chPeaksGenrich
-  set val(prefix), file("*Genrich_NotPreshifted_peaks.narrowPeak"), val("GenrichNotPreShifted") into chPeaksGenrichNotPreShifted
-  file "*_mqc.tsv" into chGenrichCountsSharp
-  file("v_genrich.txt") into chGenrichVersionSharp
+  set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chGenrichPeaks
+  file "*_mqc.tsv" into chGenrichCounts
+  file("v_genrich.txt") into chGenrichVersion
 
- script:
+  script:
   format = params.singleEnd ? "BAM" : "BAMPE"
   """
   echo \$(Genrich --version) &> v_genrich.txt
 
-  ######### Preshifted reads Peak calling ##########
   samtools sort -n -@ ${task.cpus} -o ${prefix}_nsorted.bam ${bam[0]} 
 
   Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak  -j
@@ -1156,20 +1174,49 @@ process genrich {
   cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Genrich_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
   grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Genrich_peaks.FRiP_mqc.tsv
+  """
+}
 
-  ######### Not Preshifted reads Peak calling ##########
-  samtools sort -n -@ ${task.cpus} -o ${prefix}_NotPreshifted_nsorted.bam ${bamN[0]}
+process genrichShift {
+  tag "${prefix}"
+  label 'genrich'
+  label 'medCpu'
+  label 'medMem'
+  publishDir path: "${params.outDir}/peakCalling/GenrichShift", mode: 'copy',
+    saveAs: { filename -> if (filename.endsWith(".tsv")) "stats/$filename"
+            else filename }
 
-  Genrich -t ${prefix}_NotPreshifted_nsorted.bam -o ${prefix}_Genrich_NotPreshifted_peaks.narrowPeak  -j -y -d 150
+  when:
+  !params.skipGenrichPeakCalling && params.effGenomeSize
 
-  cat ${prefix}_Genrich_NotPreshifted_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Genrich_NotPreshifted_peaks.count_mqc.tsv
-  READS_IN_PEAKS=\$(intersectBed -a ${bamN[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Genrich_NotPreshifted_peaks.FRiP_mqc.tsv
+  input:
+  set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrichShift.join(chFilteredGenrichShiftFlagstat)
+  file peakCountHeader from chPeakCountHeaderGenrichShift.collect()
+  file fripScoreHeader from chFripScoreHeaderGenrichShift.collect()
+
+  output:
+  set val(prefix), file("*GenrichShift_peaks.narrowPeak"),val("GenrichShift") into chGenrichShiftPeaks
+  file "*_mqc.tsv" into chGenrichShiftCounts
+  file("v_genrich.txt") into chGenrichShiftVersion
+
+  script:
+  format = params.singleEnd ? "BAM" : "BAMPE"
+  """
+  echo \$(Genrich --version) &> v_genrich.txt
+
+  samtools sort -n -@ ${task.cpus} -o ${prefix}_nsorted.bam ${bam[0]}
+
+  Genrich -t ${prefix}_nsorted.bam -o ${prefix}_GenrichShift_peaks.narrowPeak  -j -y -d 150
+
+  cat ${prefix}_GenrichShift_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_GenrichShift_peaks.count_mqc.tsv
+  READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_GenrichShift_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_GenrichShift_peaks.FRiP_mqc.tsv
   """
  }
 
-chPeaksMacs.concat(chPeaksGenrich)
-  .dump(tag : 'chPeakHomer')
+chMacsPeaks
+  .concat(chMacsShiftPeaks, chGenrichPeaks, chGenrichShiftPeaks)
+  .dump(tag : 'peaks')
   .into{ chPeaksHomer; chPeakQC; chIdrReplicates; chIdrGroups }
 
 
@@ -1305,8 +1352,7 @@ process featureCounts{
 }
 
 if(params.skipGenrichPeakCalling){
-Channel.empty()
-              .set {chDesignControlGenrich}
+  chDesignControlGenrich = Channel.empty()
 }
 
 chIdrReplicates
@@ -1323,67 +1369,69 @@ chIdrGroups
 
 
 process ReplicatesIDR {
-tag "${samplename} IDR Replicates"
-label 'IDR_Replicates'
-label 'medCpu'
-label 'medMem'
-publishDir "${params.outDir}/IDR/Replicates", mode: "copy"
-errorStrategy 'ignore'
-input:
-  set val(sampleidR),file(narrowPeaksR),val(callerR),val(samplenameR),val(groupR),val(replicateR) from chIdrReplicates
-  val(ReplicatesCounts) from chIdrReplicatesCounts
-                                  .map{ row -> row[0].size()}
+  tag "${samplename} IDR Replicates"
+  label 'IDR_Replicates'
+  label 'medCpu'
+  label 'medMem'
 
-when:
+  publishDir "${params.outDir}/IDR/Replicates", mode: "copy"
+  errorStrategy 'ignore'
+
+  input:
+  set val(sampleidR),file(narrowPeaksR),val(callerR),val(samplenameR),val(groupR),val(replicateR) from chIdrReplicates
+  val(ReplicatesCounts) from chIdrReplicatesCounts.map{ row -> row[0].size()}
+
+  when:
   !params.skipIDR && ReplicatesCounts >= 2
-output:
+
+  output:
   set file("${samplenameR}_${callerR}.idr.txt"), file("${samplenameR}_${callerR}.idr.log") into chIdrResultsReplicates
  
-script:
-"""
-####### Calculating IDR Across sample replicates ###################"
-selectedsamples=`${baseDir}/bin/select_peakfiles_for_IDR.py --caller $callerR --peakfiles $narrowPeaksR`
+  script:
+  """
+  selectedsamples=`${baseDir}/bin/select_peakfiles_for_IDR.py --caller $callerR --peakfiles $narrowPeaksR`
 
-idr --samples \$selectedsamples  \
---input-file-type narrowPeak \
---rank p.value \
---output-file ${samplenameR}_${callerR}.idr.txt \
---plot \
---log-output-file ${samplenameR}_${callerR}.idr.log
-"""
+  idr --samples \$selectedsamples  \
+      --input-file-type narrowPeak \
+      --rank p.value \
+      --output-file ${samplenameR}_${callerR}.idr.txt \
+      --plot \
+      --log-output-file ${samplenameR}_${callerR}.idr.log
+  """
 }
 
 
 process GroupsIDR {
-tag "${samplename} IDR Groups"
-label 'IDR_Groups'
-label 'medCpu'
-label 'medMem'
-publishDir "${params.outDir}/IDR/Groups", mode: "copy"
-errorStrategy 'ignore'
-input:
+  tag "${samplename} IDR Groups"
+  label 'IDR_Groups'
+  label 'medCpu'
+  label 'medMem'
+
+  publishDir "${params.outDir}/IDR/Groups", mode: "copy"
+  errorStrategy 'ignore'
+
+  input:
   set val(sampleidG),file(narrowPeaksG),val(callerG),val(samplenameG),val(groupG),val(replicateG) from chIdrGroups
-  val(GroupsCounts) from chIdrGroupsCounts
-                                  .map{ row -> row[0].size()}
+  val(GroupsCounts) from chIdrGroupsCounts.map{ row -> row[0].size()}
 
-
-when:
+  when:
   !params.skipIDR && GroupsCounts >= 2
-output:
+
+  output:
   set file("${samplenameG[0]}_${callerG}.idr.txt"), file("${samplenameG[0]}_${callerG}.idr.log") into chIdrResultsGroups
 
-script:
-"""
-######## Calculating IDR Across biological categories #######################
-selectedsamples=`${baseDir}/bin/select_peakfiles_for_IDR.py --caller $callerG --peakfiles $narrowPeaksG`
+  script:
+  """
+  ######## Calculating IDR Across biological categories #######################
+  selectedsamples=`${baseDir}/bin/select_peakfiles_for_IDR.py --caller $callerG --peakfiles $narrowPeaksG`
 
-idr --samples \${selectedsamples}  \
---input-file-type narrowPeak \
---rank p.value \
---output-file ${samplenameG[0]}_${callerG}.idr.txt \
---plot \
---log-output-file ${samplenameG[0]}_${callerG}.idr.log
-"""
+  idr --samples \${selectedsamples}  \
+      --input-file-type narrowPeak \
+      --rank p.value \
+      --output-file ${samplenameG[0]}_${callerG}.idr.txt \
+      --plot \
+      --log-output-file ${samplenameG[0]}_${callerG}.idr.log
+  """
 }
 
 
@@ -1405,8 +1453,8 @@ process getSoftwareVersions{
   file 'v_bowtie2.txt' from chBowtie2Version.first().ifEmpty([])
   file 'v_samtools.txt' from chSamtoolsVersionBamSort.concat(chSamtoolsVersionBamFiltering).first().ifEmpty([])
   file 'v_picard.txt' from chPicardVersion.first().ifEmpty([])
-  file 'v_macs2.txt' from chMacs2VersionMacs2Sharp.first().ifEmpty([])
-  file 'v_genrich.txt' from chGenrichVersionSharp.first().ifEmpty([])
+  file 'v_macs2.txt' from chMacsVersion.first().ifEmpty([])
+  file 'v_genrich.txt' from chGenrichVersion.first().ifEmpty([])
   file 'v_preseq.txt' from chPreseqVersion.first().ifEmpty([])
   file 'v_deeptools.txt' from chDeeptoolsVersion.first().ifEmpty([])
   file 'v_featurecounts.txt' from chFeaturecountsVersion.first().ifEmpty([])
@@ -1471,8 +1519,8 @@ process multiqc {
   file ('deepTools/*') from chDeeptoolsSingleMqc.collect().ifEmpty([])
   //file ("deepTools/*") from chDeeptoolsCorrelMqc.collect().ifEmpty([])
   file ("deepTools/*") from chDeeptoolsFingerprintMqc.collect().ifEmpty([])
-  file ('peakCalling/*') from chMacsOutputSharp.collect().ifEmpty([])
-  file ('peakCalling/*') from chMacsCountsSharp.collect().ifEmpty([])
+  file ('peakCalling/*') from chMacsOutput.collect().ifEmpty([])
+  file ('peakCalling/*') from chMacsCounts.collect().ifEmpty([])
   file('peakQC/*') from chPeakMqc.collect().ifEmpty([])
   
   output:

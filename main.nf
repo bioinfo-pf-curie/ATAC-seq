@@ -64,6 +64,7 @@ def helpMessage() {
   --blacklist [file]                 Path to black list regions (.bed).
 
   Calling:
+  --tn5sites [bool]                  Focus the analysis on Tn5 insertion sites (ie. work at the reads level and not at the fragment one)
   --extsize [int]                    Value to use for extsize parameter during Macs calling. Default : 150. Shift parameter will be set up as extsize/2
 
   Annotation:          If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
@@ -81,7 +82,7 @@ def helpMessage() {
   --skipPeakAnno [bool]              Skips peak annotation
   --skipFeatCounts [bool]            Skips feature count
   --skipMultiQC [bool]               Skips MultiQC step
-  --skipShift [bool]                 Skips reads shifting step
+  --skipShift [bool]                 Skips reads shifting for Tn5 correction (+4/-5bp)
   --skipGenrichPeakCalling           Skips Genrich peak calling
 
   Other options:
@@ -238,11 +239,11 @@ if (!params.effGenomeSize) {
 
 Channel
   .fromPath("$baseDir/assets/peak_count_header.txt")
-  .into { chPeakCountHeaderMacs; chPeakCountHeaderMacsShift; chPeakCountHeaderGenrich; chPeakCountHeaderGenrichShift }
+  .into { chPeakCountHeaderMacs; chPeakCountHeaderMacsTn5; chPeakCountHeaderGenrich; chPeakCountHeaderGenrichTn5 }
 
 Channel
   .fromPath("$baseDir/assets/frip_score_header.txt")
-  .into { chFripScoreHeaderMacs; chFripScoreHeaderMacsShift; chFripScoreHeaderGenrich; chFripScoreHeaderGenrichShift }
+  .into { chFripScoreHeaderMacs; chFripScoreHeaderMacsTn5; chFripScoreHeaderGenrich; chFripScoreHeaderGenrichTn5 }
 
 
 Channel
@@ -333,7 +334,7 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-         .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2; rawReadsBt2; planMultiQC }
+         .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
    }else if (!params.singleEnd && !params.inputBam){
       Channel
          .from(file("${params.samplePlan}"))
@@ -341,7 +342,7 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2]), file(row[3])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-         .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2 ;rawReadsBt2; planMultiQC }
+         .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
    }else{
       Channel
          .from(file("${params.samplePlan}"))
@@ -360,7 +361,7 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-            .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2;rawReadsBt2; planMultiQC }
+            .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
     } else {
         Channel
             .from(params.readPaths)
@@ -368,7 +369,7 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-            .into { rawReadsFastqc; rawReadsBWA; rawReadsBWA2; rawReadsBt2; planMultiQC }
+            .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
     }
 } else {
     Channel
@@ -755,7 +756,7 @@ process bamFiltering {
   file bed from chGeneBed.collect()
 
   output:
-  set val(prefix), file("*filtered.{bam,bam.bai}") into chFilteredBams
+  set val(prefix), file("*filtered.{bam,bam.bai}") into chFilteredBams,chFilteredBamsNoTn5
   set val(prefix), file("*filtered.flagstat") into chFilteredFlagstat
   file "*raw.idxstats" into chRawStats
   file "*filtered.{idxstats,stats}" into chFilteredStats
@@ -817,16 +818,16 @@ if (! params.skipShift){
   chShiftBams
     .dump(tag : 'fbams')
     .into{ chBamsFragSize;
-           chBamsMacs; chBamsMacsShift; chBamsGenrich; chBamsGenrichShift;
+           chBamsMacs; chBamsMacsTn5; chBamsGenrich; chBamsGenrichTn5;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
            chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
            chBamsCounts }
 }else{
-  chFilteredBams
+  chFilteredBamsNoShift
     .dump(tag : 'fbams')
     .into{ chBamsFragSize;
-           chBamsMacs; chBamsMacsShift; chBamGenrich; chBamsGenrichShift;
+           chBamsMacs; chBamsMacsTn5; chBamsGenrich; chBamsGenrichTn5;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
            chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
@@ -885,25 +886,27 @@ process bigWig {
   file("v_deeptools.txt") into chDeeptoolsVersion
 
   script:
-  //extend = params.singleEnd && params.fragmentSize > 0 ? "--extendReads ${params.fragmentSize}" : ""
+  extend = params.tn5sites ? "" : params.singleEnd && params.fragmentSize > 0 ? "--extendReads ${params.fragmentSize}" : "--extendReads"
   blacklistParams = params.blacklist ? "--blackListFileName ${BLbed}" : ""
   effGsize = params.effGenomeSize ? "--effectiveGenomeSize ${params.effGenomeSize}" : ""
   """
   bamCoverage --version &> v_deeptools.txt
   nbreads=\$(samtools view -@ $task.cpus -F 0x100 -F 0x4 -F 0x800 -c ${filteredBams[0]})
-  sf=\$(echo "10000000 \$nbreads" | awk '{printf "%.2f", \$1/\$2}')
+  sf=\$(echo "1000000 \$nbreads" | awk '{printf "%.2f", \$1/\$2}')
 
   bamCoverage -b ${filteredBams[0]} \\
               -o ${prefix}_norm.bigwig \\
               -p ${task.cpus} \\
               ${blacklistParams} \\
               ${effGsize} \\
+	      ${extend} \\
               --scaleFactor \$sf
 
   bamCoverage -b ${filteredBams[0]} \\
               -o ${prefix}_NFR.bigwig \\
               -p ${task.cpus} \\
               ${effGsize} \\
+	      ${extend} \\
               --maxFragmentLength 100 \\
               --scaleFactor \$sf
 
@@ -911,6 +914,7 @@ process bigWig {
               -o ${prefix}_NUC.bigwig \\
               -p ${task.cpus} \\
               ${effGsize} \\
+	      ${extend} \\
               --minFragmentLength 180 \\
               --maxFragmentLength 437 \\
               --scaleFactor \$sf
@@ -948,7 +952,7 @@ process deepToolsComputeMatrix{
                 -S ${bigwig} \\
                 -o ${prefix}_matrix.mat.gz \\
                 --outFileNameMatrix ${prefix}.computeMatrix.vals.mat.gz \\
-                -b 1000 -a 1000 --skipZeros \\
+                -b 2000 -a 2000 --skipZeros --binsize 100 \\
                 -p ${task.cpus}
 
   plotProfile -m ${prefix}_matrix.mat.gz \\
@@ -1040,7 +1044,7 @@ process deepToolsFingerprint{
  * Peak calling 
  */
 
-(chFilteredMacsFlagstat, chFilteredMacsShiftFlagstat, chFilteredGenrichFlagstat, chFilteredGenrichShiftFlagstat) = chFilteredFlagstat.into(4)
+(chFilteredMacsFlagstat, chFilteredMacsTn5Flagstat, chFilteredGenrichFlagstat, chFilteredGenrichTn5Flagstat) = chFilteredFlagstat.into(4)
 
 /*
  * MACS2
@@ -1056,7 +1060,7 @@ process macs2 {
                           else filename }
  
   when:
-  !params.skipPeakCalling && params.effGenomeSize && params.extsize
+  !params.skipPeakCalling
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacs.join(chFilteredMacsFlagstat)
@@ -1069,75 +1073,29 @@ process macs2 {
   file "*_mqc.tsv" into chMacsCounts
   file("v_macs2.txt") into chMacsVersion
 
-  script:
-  format = params.singleEnd ? "BAM" : "BAMPE"
+  script: 
+  preproc = params.tn5sites ? "bamToBed -i ${bam[0]} > {bam[0].baseName}.bed; shift=\$(expr ${params.extsize} / 2 )" : ""
+  inputs = params.tn5sites ? "-t {bam[0].baseName}.bed -f BED" : params.singleEnd ? "-t ${bam[0]}-f BAM" : "-t ${bam[0]} -f BAMPE"
+  opts = params.tn5sites ? "--keep-dup all --shift -\${shift} --extsize ${params.extsize} --nomodel --call-summits --nolambda -p 0.01" : "--keep-dup all --nomodel --nolambda --call-summits -p 0.01"
   """
   echo \$(macs2 --version 2>&1) &> v_macs2.txt
-
-  ######### Peak calling at the fragment level ##########
+  ${preproc}
   macs2 callpeak \\
-    -t ${bam[0]} \\
-    -f $format \\
+    ${inputs}
     -g $params.effGenomeSize \\
     -n ${prefix}_macs2 \\
     --SPMR --trackline --bdg \\
-    --keep-dup all --nomodel --call-summits
- 
+    ${opts}
+
   cat ${prefix}_macs2_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_macs2_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_macs2_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
   grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_macs2_peaks.FRiP_mqc.tsv
   """
 }
 
-process macs2Shift {
-  tag "${prefix}"
-  label 'macs2'
-  label 'medCpu'
-  label 'medMem'
-  publishDir path: "${params.outDir}/peakCalling/MacsShift", mode: 'copy',
-    saveAs: { filename -> if (filename.endsWith(".tsv")) "stats/$filename"
-                          else filename }
- 
-  when:
-  !params.skipPeakCalling && params.effGenomeSize && params.extsize
-
-  input:
-  set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacsShift.join(chFilteredMacsShiftFlagstat)
-  file peakCountHeader from chPeakCountHeaderMacsShift.collect()
-  file fripScoreHeader from chFripScoreHeaderMacsShift.collect()
-
-  output:
-  file("*.xls") into chMacsShiftOutput
-  set val(prefix), file("*macs2Shift_peaks.narrowPeak"), val("macs2Shifted") into chMacsShiftPeaks
-  file "*_mqc.tsv" into chMacsShifCounts
-  file("v_macs2.txt") into chMacsShifVersion
-
-  script:
-  format = params.singleEnd ? "BAM" : "BAMPE"
-  """
-  echo \$(macs2 --version 2>&1) &> v_macs2.txt
-
-  ## Convert bam to bed
-  bamToBed -i ${bam[0]} > {bam[0].baseName}.bed
-
-  ######### Peak calling at the cutting site ##########
-  shift=\$(expr ${params.extsize} / 2 )
-  macs2 callpeak \\
-    -t {bam[0].baseName}.bed \\
-    -f BED \\
-    -g $params.effGenomeSize \\
-    -n ${prefix}_macs2Shift \\
-    --SPMR --trackline --bdg \\
-    --keep-dup all --shift -\${shift} --extsize ${params.extsize} --nomodel --call-summits
-  cat ${prefix}_macs2Shift_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_macs2Shift_peaks.count_mqc.tsv
-  READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_macs2Shift_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_macs2Shift_peaks.FRiP_mqc.tsv
-  """
- }
-
 
 /*
- * GENRICH - sharp mode
+ * GENRICH
  */
 
 process genrich {
@@ -1145,12 +1103,12 @@ process genrich {
   label 'genrich'
   label 'medCpu'
   label 'medMem'
-  publishDir path: "${params.outDir}/peakCalling/Genrich", mode: 'copy',
+  publishDir path: "${params.outDir}/peakCalling/genrich", mode: 'copy',
     saveAs: { filename -> if (filename.endsWith(".tsv")) "stats/$filename"
             else filename }
 
   when:
-  !params.skipGenrichPeakCalling && params.effGenomeSize
+  !params.skipGenrichPeakCalling && !params.tn5sites
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
@@ -1163,13 +1121,13 @@ process genrich {
   file("v_genrich.txt") into chGenrichVersion
 
   script:
-  format = params.singleEnd ? "BAM" : "BAMPE"
+  opts=params.tn5sites ? "-j -y -d 150" : ""
   """
   echo \$(Genrich --version) &> v_genrich.txt
 
   samtools sort -n -@ ${task.cpus} -o ${prefix}_nsorted.bam ${bam[0]} 
 
-  Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak  -j
+  Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak -D ${opts}
 
   cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Genrich_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
@@ -1177,45 +1135,8 @@ process genrich {
   """
 }
 
-process genrichShift {
-  tag "${prefix}"
-  label 'genrich'
-  label 'medCpu'
-  label 'medMem'
-  publishDir path: "${params.outDir}/peakCalling/GenrichShift", mode: 'copy',
-    saveAs: { filename -> if (filename.endsWith(".tsv")) "stats/$filename"
-            else filename }
-
-  when:
-  !params.skipGenrichPeakCalling && params.effGenomeSize
-
-  input:
-  set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrichShift.join(chFilteredGenrichShiftFlagstat)
-  file peakCountHeader from chPeakCountHeaderGenrichShift.collect()
-  file fripScoreHeader from chFripScoreHeaderGenrichShift.collect()
-
-  output:
-  set val(prefix), file("*GenrichShift_peaks.narrowPeak"),val("GenrichShift") into chGenrichShiftPeaks
-  file "*_mqc.tsv" into chGenrichShiftCounts
-  file("v_genrich.txt") into chGenrichShiftVersion
-
-  script:
-  format = params.singleEnd ? "BAM" : "BAMPE"
-  """
-  echo \$(Genrich --version) &> v_genrich.txt
-
-  samtools sort -n -@ ${task.cpus} -o ${prefix}_nsorted.bam ${bam[0]}
-
-  Genrich -t ${prefix}_nsorted.bam -o ${prefix}_GenrichShift_peaks.narrowPeak  -j -y -d 150
-
-  cat ${prefix}_GenrichShift_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_GenrichShift_peaks.count_mqc.tsv
-  READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_GenrichShift_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_GenrichShift_peaks.FRiP_mqc.tsv
-  """
- }
-
 chMacsPeaks
-  .concat(chMacsShiftPeaks, chGenrichPeaks, chGenrichShiftPeaks)
+  .concat(chGenrichPeaks)
   .dump(tag : 'peaks')
   .into{ chPeaksHomer; chPeakQC; chIdrReplicates; chIdrGroups }
 

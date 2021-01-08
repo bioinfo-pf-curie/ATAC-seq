@@ -52,7 +52,7 @@ fi
 
 all_samples=$(awk -F, '{print $1}' $splan)
 
-echo -e "Sample_ID,Sample_name,Number_of_reads,Number_of_aligned_reads,Percent_of_aligned_reads,Number_of_mito,Percent_of_mito,Number_of_hq_mapped_reads,Percent_of_hq_mapped_reads,Number_of_lq_mapped_reads,Percent_of_lq_mapped_reads,Number_of_duplicates,Percent_of_duplicates,Number_of_usable_reads,Percent_of_usable_reads,Fraction_of_reads_in_peaks" > mqc.stats
+echo -e "Sample_ID,Sample_name,Number_of_reads,Number_of_aligned_reads,Percent_of_aligned_reads,Number_of_mito,Percent_of_mito,Number_of_hq_mapped_reads,Percent_of_hq_mapped_reads,Number_of_lq_mapped_reads,Percent_of_lq_mapped_reads,Number_of_duplicates,Percent_of_duplicates,Number_of_usable_reads,Percent_of_usable_reads,TSS_enrichment,Fraction_of_reads_in_peaks" > mqc.stats
 
 for sample in $all_samples
 do
@@ -121,6 +121,13 @@ do
 	perc_filt=$(echo "${nb_filt} ${nb_mapped}" | awk ' { printf "%.*f",2,$1*100/$2 } ')
     fi
 
+    #TSS Enrichment
+    if [[ -e deeptools/${sample}.plotProfile_corrected.tab ]]; then
+	tsse=$(awk -F"\t" 'NR==3{mn=mx=$3;for(i=3;i<=NF;i++){if($i>mx){mx=$i}};printf("%.*f",2, mx-mn)}' deeptools/${sample}.plotProfile_corrected.tab)
+    else
+	tsse='NA'
+    fi
+
     #PeakCalling 
     if [[ ! -z $design ]];
     then
@@ -135,6 +142,6 @@ do
     fi
 
     #To file
-    echo -e ${sample},${sname},${nb_frag},${nb_mapped},${perc_mapped},${nb_mito},${perc_mito},${nb_mapped_hq},${perc_mapped_hq},${nb_mapped_lq},${perc_mapped_lq},${nb_dups},${perc_dups},${nb_filt},${perc_filt},${frip} >> mqc.stats
+    echo -e ${sample},${sname},${nb_frag},${nb_mapped},${perc_mapped},${nb_mito},${perc_mito},${nb_mapped_hq},${perc_mapped_hq},${nb_mapped_lq},${perc_mapped_lq},${nb_dups},${perc_dups},${nb_filt},${perc_filt},${tsse},${frip} >> mqc.stats
 done
 

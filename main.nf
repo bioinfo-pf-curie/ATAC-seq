@@ -1081,7 +1081,7 @@ process macs2 {
   echo \$(macs2 --version 2>&1) &> v_macs2.txt
   ${preproc}
   macs2 callpeak \\
-    ${inputs}
+    ${inputs} \\
     -g $params.effGenomeSize \\
     -n ${prefix}_macs2 \\
     --SPMR --trackline --bdg \\

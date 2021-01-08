@@ -952,7 +952,7 @@ process deepToolsComputeMatrix{
                 -S ${bigwig} \\
                 -o ${prefix}_matrix.mat.gz \\
                 --outFileNameMatrix ${prefix}.computeMatrix.vals.mat.gz \\
-                -b 2000 -a 2000 --skipZeros --binsize 100 \\
+                -b 2000 -a 2000 --skipZeros -bs 100 \\
                 -p ${task.cpus}
 
   plotProfile -m ${prefix}_matrix.mat.gz \\

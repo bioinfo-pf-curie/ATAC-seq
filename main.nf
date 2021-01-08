@@ -239,11 +239,11 @@ if (!params.effGenomeSize) {
 
 Channel
   .fromPath("$baseDir/assets/peak_count_header.txt")
-  .into { chPeakCountHeaderMacs; chPeakCountHeaderMacsTn5; chPeakCountHeaderGenrich; chPeakCountHeaderGenrichTn5 }
+  .into { chPeakCountHeaderMacs; chPeakCountHeaderGenrich }
 
 Channel
   .fromPath("$baseDir/assets/frip_score_header.txt")
-  .into { chFripScoreHeaderMacs; chFripScoreHeaderMacsTn5; chFripScoreHeaderGenrich; chFripScoreHeaderGenrichTn5 }
+  .into { chFripScoreHeaderMacs; chFripScoreHeaderGenrich }
 
 
 Channel
@@ -756,7 +756,7 @@ process bamFiltering {
   file bed from chGeneBed.collect()
 
   output:
-  set val(prefix), file("*filtered.{bam,bam.bai}") into chFilteredBams,chFilteredBamsNoTn5
+  set val(prefix), file("*filtered.{bam,bam.bai}") into chFilteredBams,chFilteredBamsNoShift
   set val(prefix), file("*filtered.flagstat") into chFilteredFlagstat
   file "*raw.idxstats" into chRawStats
   file "*filtered.{idxstats,stats}" into chFilteredStats
@@ -818,7 +818,7 @@ if (! params.skipShift){
   chShiftBams
     .dump(tag : 'fbams')
     .into{ chBamsFragSize;
-           chBamsMacs; chBamsMacsTn5; chBamsGenrich; chBamsGenrichTn5;
+           chBamsMacs; chBamsGenrich;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
            chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
@@ -827,7 +827,7 @@ if (! params.skipShift){
   chFilteredBamsNoShift
     .dump(tag : 'fbams')
     .into{ chBamsFragSize;
-           chBamsMacs; chBamsMacsTn5; chBamsGenrich; chBamsGenrichTn5;
+           chBamsMacs; chBamsGenrich;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
            chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
@@ -1044,7 +1044,7 @@ process deepToolsFingerprint{
  * Peak calling 
  */
 
-(chFilteredMacsFlagstat, chFilteredMacsTn5Flagstat, chFilteredGenrichFlagstat, chFilteredGenrichTn5Flagstat) = chFilteredFlagstat.into(4)
+(chFilteredMacsFlagstat, chFilteredGenrichFlagstat) = chFilteredFlagstat.into(2)
 
 /*
  * MACS2

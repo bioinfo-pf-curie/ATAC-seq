@@ -542,7 +542,7 @@ process bwaMem{
   tag "${sample} on ${genomeBase}"
   label 'bwa'
   label 'highCpu'
-  label 'highMem'
+  label 'extraMem'
   publishDir "${params.outDir}/mapping", mode: 'copy',
              saveAs: {filename -> 
 	     if (filename.indexOf(".log") > 0) "logs/$filename" 
@@ -882,7 +882,7 @@ process bigWig {
   output:
   set val(prefix), file('*norm.bigwig') into chBigWig
   set val("${prefix}_NFR"), file('*NFR.bigwig') into chBigWigNFR
-  set val("${prefix}_NUC"), file('*NUC.bigwig') into chBigWigNUC
+  set val("${prefix}_NBR"), file('*NBR.bigwig') into chBigWigNBR
   file("v_deeptools.txt") into chDeeptoolsVersion
 
   script:
@@ -892,7 +892,7 @@ process bigWig {
   """
   bamCoverage --version &> v_deeptools.txt
   nbreads=\$(samtools view -@ $task.cpus -F 0x100 -F 0x4 -F 0x800 -c ${filteredBams[0]})
-  sf=\$(echo "1000000 \$nbreads" | awk '{printf "%.2f", \$1/\$2}')
+  sf=\$(echo "1000000 \$nbreads" | awk '{print \$1/\$2}')
 
   bamCoverage -b ${filteredBams[0]} \\
               -o ${prefix}_norm.bigwig \\
@@ -911,7 +911,7 @@ process bigWig {
               --scaleFactor \$sf
 
   bamCoverage -b ${filteredBams[0]} \\
-              -o ${prefix}_NUC.bigwig \\
+              -o ${prefix}_NBR.bigwig \\
               -p ${task.cpus} \\
               ${effGsize} \\
 	      ${extend} \\
@@ -936,7 +936,7 @@ process deepToolsComputeMatrix{
   !params.skipDeepTools
 
   input:
-  set val(prefix), file(bigwig) from chBigWigNFR.concat(chBigWigNUC)
+  set val(prefix), file(bigwig) from chBigWigNFR.concat(chBigWigNBR)
   file geneBed from chGeneBedDeeptools.collect()
 
   output:
@@ -1102,7 +1102,7 @@ process genrich {
   tag "${prefix}"
   label 'genrich'
   label 'medCpu'
-  label 'medMem'
+  label 'highMem'
   publishDir path: "${params.outDir}/peakCalling/genrich", mode: 'copy',
     saveAs: { filename -> if (filename.endsWith(".tsv")) "stats/$filename"
             else filename }

@@ -126,7 +126,7 @@ custom_data:
               title: 'TSS Enrichment'
               description: 'TSS Enrichment Score'
               scale: 'RdYlGn'
-              format: '{:,.0f}'
+              format: '{:,.2f}'
               placement: 12500
             Fraction_of_reads_in_peaks:
               min: 0
@@ -185,11 +185,11 @@ table_cond_formatting_rules:
           - lt: 25
     TSS_enrichment:
         pass:
-          - gt: 3
+          - gt: 0.399
         warn:
-          - lt: 3
+          - lt: 0.40
         fail:
-          - lt: 1
+          - lt: 0.25
     Fraction_of_reads_in_peaks:
         pass:
           - gt: 0.01
@@ -226,7 +226,7 @@ module_order:
       info: '- Mono/di/tri-nucleosomes Bound Regions (NBR) enrichment around Transcription Start Sites (TSS). Fragments with a size between 180 and 437 bp are considered.'
       anchor: 'deeptools-NUC'
       path_filters:
-        - '*NUC.plotProfile_corrected.tab'
+        - '*NBR.plotProfile_corrected.tab'
    - deeptools:
       name: 'Fingerprint'
       path_filters_exclude:

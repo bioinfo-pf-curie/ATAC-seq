@@ -294,6 +294,7 @@ if (params.singleEnd)  summary['Fragment Size '] = params.fragmentSize
 summary['Aligner'] = params.aligner
 if (params.keepDups)  summary['Keep Duplicates'] = 'Yes'
 if (params.mapq)  summary['Min MapQ'] = params.mapq
+summary['Mode']         = params.tn5sites ? 'Tn5-sites' : 'Fragment'
 summary['Max Memory']   = params.maxMemory
 summary['Max CPUs']     = params.maxCpus
 summary['Max Time']     = params.maxTime
@@ -952,7 +953,7 @@ process deepToolsComputeMatrix{
                 -S ${bigwig} \\
                 -o ${prefix}_matrix.mat.gz \\
                 --outFileNameMatrix ${prefix}.computeMatrix.vals.mat.gz \\
-                -b 2000 -a 2000 --skipZeros -bs 100 \\
+                -b 1000 -a 1000 --skipZeros \\
                 -p ${task.cpus}
 
   plotProfile -m ${prefix}_matrix.mat.gz \\
@@ -1070,7 +1071,7 @@ process macs2 {
   output:
   file("*.xls") into chMacsOutput
   set val(prefix), file("*macs2_peaks.narrowPeak"), val("macs2") into chMacsPeaks
-  file "*_mqc.tsv" into chMacsCounts
+  file "*_mqc.tsv" into chMacsMqc
   file("v_macs2.txt") into chMacsVersion
 
   script: 
@@ -1087,9 +1088,9 @@ process macs2 {
     --SPMR --trackline --bdg \\
     ${opts}
 
-  cat ${prefix}_macs2_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_macs2_peaks.count_mqc.tsv
+  cat ${prefix}_macs2_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_macs2_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_macs2_peaks.FRiP_mqc.tsv
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_peaks.FRiP_mqc.tsv
   """
 }
 
@@ -1108,7 +1109,7 @@ process genrich {
             else filename }
 
   when:
-  !params.skipGenrichPeakCalling && !params.tn5sites
+  !params.skipGenrichPeakCalling
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
@@ -1117,7 +1118,7 @@ process genrich {
 
   output:
   set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chGenrichPeaks
-  file "*_mqc.tsv" into chGenrichCounts
+  file "*_mqc.tsv" into chGenrichMqc
   file("v_genrich.txt") into chGenrichVersion
 
   script:
@@ -1129,9 +1130,9 @@ process genrich {
 
   Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak -D ${opts}
 
-  cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_Genrich_peaks.count_mqc.tsv
+  cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_Genrich_peaks.FRiP_mqc.tsv
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_peaks.FRiP_mqc.tsv
   """
 }
 
@@ -1441,7 +1442,7 @@ process multiqc {
   //file ("deepTools/*") from chDeeptoolsCorrelMqc.collect().ifEmpty([])
   file ("deepTools/*") from chDeeptoolsFingerprintMqc.collect().ifEmpty([])
   file ('peakCalling/*') from chMacsOutput.collect().ifEmpty([])
-  file ('peakCalling/*') from chMacsCounts.collect().ifEmpty([])
+  file ('peakCalling/*') from chMacsMqc.collect().ifEmpty([])
   file('peakQC/*') from chPeakMqc.collect().ifEmpty([])
   
   output:
@@ -1455,7 +1456,7 @@ process multiqc {
   metadataOpts = params.metadata ? "--metadata ${metadata}" : ""
   isPE = params.singleEnd ? "" : "-p"
   designOpts= params.design ? "-d ${params.design}" : ""
-  modules_list = "-m custom_content -m fastqc -m bowtie2 -m star -m preseq -m picard -m deeptools -m macs2 -m homer"
+  modules_list = "-m custom_content -m fastqc -m bowtie2 -m preseq -m picard -m deeptools -m macs2 -m homer"
   """
   ${baseDir}/bin/stats2multiqc.sh -s ${splan} ${designOpts} -a ${params.aligner} -m ${params.mitoName} ${isPE}
   ${baseDir}/bin/mqc_header.py --splan ${splan} --name "ATAC-seq" --version ${workflow.manifest.version} ${metadataOpts} > multiqc-config-header.yaml

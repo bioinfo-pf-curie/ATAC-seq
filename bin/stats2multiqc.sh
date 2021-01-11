@@ -122,21 +122,15 @@ do
     fi
 
     #TSS Enrichment
-    if [[ -e deeptools/${sample}.plotProfile_corrected.tab ]]; then
-	tsse=$(awk -F"\t" 'NR==3{mn=mx=$3;for(i=3;i<=NF;i++){if($i>mx){mx=$i}};printf("%.*f",2, mx-mn)}' deeptools/${sample}.plotProfile_corrected.tab)
+    if [[ -e deepTools/${sample}_NFR.plotProfile_corrected.tab ]]; then
+	tsse=$(awk -F"\t" 'NR==3{mn=mx=$3;for(i=3;i<=NF;i++){if($i>mx){mx=$i}};printf("%.*f",2, mx-mn)}' deepTools/${sample}_NFR.plotProfile_corrected.tab)
     else
 	tsse='NA'
     fi
 
     #PeakCalling 
-    if [[ ! -z $design ]];
-    then
-	peaktype=$(grep "^$sample" ${design} | awk -F, '{print $5}') 
-	if [ -e peakCalling/${peaktype}/${sample}_peaks.FRiP_mqc.tsv ]; then
-	    frip=$(grep "$sample" peakCalling/${peaktype}/${sample}_peaks.FRiP_mqc.tsv | awk '{print $2}')
-	else
-	    frip='NA'
-	fi
+    if [ -e peakCalling/${sample}_peaks.FRiP_mqc.tsv ]; then
+	frip=$(grep "$sample" peakCalling/${sample}_peaks.FRiP_mqc.tsv | awk '{print $2}')
     else
 	frip='NA'
     fi

@@ -1025,7 +1025,7 @@ process deepToolsFingerprint{
   file "plotFingerprint*" into chDeeptoolsFingerprintMqc 
  
   script:
-  //extend = params.singleEnd && params.fragmentSize > 0 ? "--extendReads ${params.fragmentSize}" : ""
+  extend = params.tn5sites ? "" : params.singleEnd && params.fragmentSize > 0 ? "--extendReads ${params.fragmentSize}" : "--extendReads"
   allPrefix = allPrefix.toString().replace("[","")
   allPrefix = allPrefix.replace(","," ") 
   allPrefix = allPrefix.replace("]","")
@@ -1034,6 +1034,7 @@ process deepToolsFingerprint{
                   -plot bams_fingerprint.pdf \\
                   -p ${task.cpus} \\
                   -l $allPrefix \\
+		  ${extend} \\
                   --skipZeros \\
                   --outRawCounts plotFingerprint.raw.txt \\
                   --outQualityMetrics plotFingerprint.qmetrics.txt
@@ -1074,10 +1075,11 @@ process macs2 {
   file "*_mqc.tsv" into chMacsMqc
   file("v_macs2.txt") into chMacsVersion
 
-  script: 
-  preproc = params.tn5sites ? "bamToBed -i ${bam[0]} > {bam[0].baseName}.bed; shift=\$(expr ${params.extsize} / 2 )" : ""
-  inputs = params.tn5sites ? "-t {bam[0].baseName}.bed -f BED" : params.singleEnd ? "-t ${bam[0]}-f BAM" : "-t ${bam[0]} -f BAMPE"
-  opts = params.tn5sites ? "--keep-dup all --shift -\${shift} --extsize ${params.extsize} --nomodel --call-summits --nolambda -p 0.01" : "--keep-dup all --nomodel --nolambda --call-summits -p 0.01"
+  script:
+  preproc = params.tn5sites ? "bamToBed -i ${bam[0]} > ${bam[0].baseName}.bed; shift=\$(expr ${params.extsize} / 2 )" : ""
+  inputs = params.tn5sites ? "-t ${bam[0].baseName}.bed -f BED" : params.singleEnd ? "-t ${bam[0]}-f BAM" : "-t ${bam[0]} -f BAMPE"
+  //--call-summits --nolambda
+  opts = params.tn5sites ? "--keep-dup all --shift -\${shift} --extsize ${params.extsize} --nomodel -q 0.01" : "--keep-dup all --nomodel -q 0.01"
   """
   echo \$(macs2 --version 2>&1) &> v_macs2.txt
   ${preproc}

@@ -1071,7 +1071,7 @@ process macs2 {
 
   output:
   file("*.xls") into chMacsOutput
-  set val(prefix), file("*macs2_peaks.narrowPeak"), val("macs2") into chMacsPeaks
+  set val(prefix), file("*macs2_peaks.narrowPeak"), val("macs2") into chMacsPeaks,chMacsPeaksbb
   file "*_mqc.tsv" into chMacsMqc
   file("v_macs2.txt") into chMacsVersion
 
@@ -1119,7 +1119,7 @@ process genrich {
   file fripScoreHeader from chFripScoreHeaderGenrich.collect()
 
   output:
-  set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chGenrichPeaks
+  set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chGenrichPeaks,chGenrichPeaksbb
   file "*_mqc.tsv" into chGenrichMqc
   file("v_genrich.txt") into chGenrichVersion
 
@@ -1142,6 +1142,46 @@ chMacsPeaks
   .concat(chGenrichPeaks)
   .dump(tag : 'peaks')
   .into{ chPeaksHomer; chPeakQC; chIdrReplicates; chIdrGroups }
+
+process narrowPeaksToBigBed {
+  tag "${prefix}"
+  label 'bedtobigbed'
+  label 'medCpu'
+  label 'medMem'
+  publishDir path: "${params.outDir}/peakCalling", mode: 'copy',
+    saveAs: { filename -> if (filename.endsWith("Genrich_peaks.narrowPeak.bb")) "genrich/bigBeds/$filename"
+            else if (filename.endsWith("macs2_peaks.narrowPeak.bb")) "macs2/bigBeds/$filename"
+            else filename }
+
+  //when:
+  //!params.skipGenrichPeakCalling && !params.tn5sites
+
+  input:
+  //set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
+  //file val(prefix),file(genrichPeaks),val("genrich") from chGenrichPeaksbb
+  //file val(prefix),file(macsPeaks),val("macs2") from chMacsPeaksbb
+  //set val(prefix),file(peakfile),val(caller) from chChromSize.cross(chMacsPeaksbb.concat(chGenrichPeaksbb)).dump(tag : 'bb')
+  set val(prefix),file(peakfile),val(caller) from chMacsPeaksbb.concat(chGenrichPeaksbb).dump(tag : 'bb')
+  file(chrSizes) from chChromSize.collect()
+
+  output:
+  //set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chGenrichbigBeds
+  //set val(prefix), file("*Genrich_peaks.narrowPeak"),val("macs2") into chMacs2bigBeds
+  //set val(prefix), file("*peaks.narrowPeak.bb"),val(caller),val(chrSizes) into chbigBeds
+  set val(prefix), file("*peaks.narrowPeak.bb"),val(caller) into chbigBeds
+
+  script:
+  """
+  awk -v OFS='\t' '{\$5=\$5>1000?1000:\$5} {print}' ${peakfile} | tail -n +2 | cut -f 1-6 > ${prefix}_${caller}_peaks.narrowPeak_normalized_score
+
+  sort -k1,1 -k2,2n ${prefix}_${caller}_peaks.narrowPeak_normalized_score > ${prefix}_${caller}_peaks.narrowPeak_normalized_score_sorted
+
+  bedClip -truncate ${prefix}_${caller}_peaks.narrowPeak_normalized_score_sorted ${chrSizes} ${prefix}_${caller}_peaks.narrowPeak_normalized_score_sorted_clipped
+
+  bedToBigBed -type=bed6 ${prefix}_${caller}_peaks.narrowPeak_normalized_score_sorted_clipped ${chrSizes} ${prefix}_${caller}_peaks.narrowPeak.bb
+  """
+
+}
 
 
 /************************************
@@ -1393,6 +1433,7 @@ process getSoftwareVersions{
   """
 }
 
+/*
 process workflowSummaryMqc {
   when:
   !params.skipMultiQC
@@ -1414,6 +1455,7 @@ process workflowSummaryMqc {
         </dl>
   """.stripIndent()
 }
+*/
 
 
 process multiqc {
@@ -1431,7 +1473,7 @@ process multiqc {
   file multiqcConfig from chMultiqcConfig.ifEmpty([])
   file design from chDesignMqc.collect().ifEmpty([])
   file ('softwareVersions/*') from softwareVersionsYaml.collect().ifEmpty([])
-  file ('summary/*') from workflowSummaryYaml.collect()
+  //file ('summary/*') from workflowSummaryYaml.collect()
   file ('fastqc/*') from chFastqcMqc.collect().ifEmpty([])
   file ('mapping/*') from chMappingMqc.collect().ifEmpty([])
   file ('mapping/*') from chMarkedPicstats.collect().ifEmpty([])

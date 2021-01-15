@@ -1132,6 +1132,8 @@ process genrich {
 
   Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak -D ${opts}
 
+  sed -i '1 i\\track type=narrowPeak name=\"${prefix}_genrich\" description=\"${prefix}_genrich\" nextItemButton=on' ${prefix}_Genrich_peaks.narrowPeak
+
   cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
   grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_peaks.FRiP_mqc.tsv
@@ -1153,21 +1155,11 @@ process narrowPeaksToBigBed {
             else if (filename.endsWith("macs2_peaks.narrowPeak.bb")) "macs2/bigBeds/$filename"
             else filename }
 
-  //when:
-  //!params.skipGenrichPeakCalling && !params.tn5sites
-
   input:
-  //set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
-  //file val(prefix),file(genrichPeaks),val("genrich") from chGenrichPeaksbb
-  //file val(prefix),file(macsPeaks),val("macs2") from chMacsPeaksbb
-  //set val(prefix),file(peakfile),val(caller) from chChromSize.cross(chMacsPeaksbb.concat(chGenrichPeaksbb)).dump(tag : 'bb')
   set val(prefix),file(peakfile),val(caller) from chMacsPeaksbb.concat(chGenrichPeaksbb).dump(tag : 'bb')
   file(chrSizes) from chChromSize.collect()
 
   output:
-  //set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chGenrichbigBeds
-  //set val(prefix), file("*Genrich_peaks.narrowPeak"),val("macs2") into chMacs2bigBeds
-  //set val(prefix), file("*peaks.narrowPeak.bb"),val(caller),val(chrSizes) into chbigBeds
   set val(prefix), file("*peaks.narrowPeak.bb"),val(caller) into chbigBeds
 
   script:
@@ -1180,7 +1172,6 @@ process narrowPeaksToBigBed {
 
   bedToBigBed -type=bed6 ${prefix}_${caller}_peaks.narrowPeak_normalized_score_sorted_clipped ${chrSizes} ${prefix}_${caller}_peaks.narrowPeak.bb
   """
-
 }
 
 

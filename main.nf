@@ -1078,7 +1078,6 @@ process macs2 {
   script:
   preproc = params.tn5sites ? "bamToBed -i ${bam[0]} > ${bam[0].baseName}.bed; shift=\$(expr ${params.extsize} / 2 )" : ""
   inputs = params.tn5sites ? "-t ${bam[0].baseName}.bed -f BED" : params.singleEnd ? "-t ${bam[0]}-f BAM" : "-t ${bam[0]} -f BAMPE"
-  //--call-summits --nolambda
   opts = params.tn5sites ? "--keep-dup all --shift -\${shift} --extsize ${params.extsize} --nomodel -q 0.01" : "--keep-dup all --nomodel -q 0.01"
   """
   echo \$(macs2 --version 2>&1) &> v_macs2.txt
@@ -1124,12 +1123,10 @@ process genrich {
   file("v_genrich.txt") into chGenrichVersion
 
   script:
-  opts=params.tn5sites ? "-j -y -d 150" : ""
+  opts=params.tn5sites ? "-j -y -d 100" : ""
   """
   echo \$(Genrich --version) &> v_genrich.txt
-
   samtools sort -n -@ ${task.cpus} -o ${prefix}_nsorted.bam ${bam[0]} 
-
   Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak -D ${opts}
 
   cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_peaks.count_mqc.tsv

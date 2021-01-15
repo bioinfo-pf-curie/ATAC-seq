@@ -818,7 +818,7 @@ process readsShifting {
 if (! params.skipShift){
   chShiftBams
     .dump(tag : 'fbams')
-    .into{ chBamsFragSize;
+    .into{ chBamsFragSize;chBamsFragSizeDT;
            chBamsMacs; chBamsGenrich;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
@@ -827,7 +827,7 @@ if (! params.skipShift){
 }else{
   chFilteredBamsNoShift
     .dump(tag : 'fbams')
-    .into{ chBamsFragSize;
+    .into{ chBamsFragSize;chBamsFragSizeDT;
            chBamsMacs; chBamsGenrich;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
@@ -845,7 +845,7 @@ process getFragmentSize {
   label 'lowCpu'
   label 'medMem'
 
-  publishDir path: "${params.outDir}/fragSize", mode: "copy"
+  publishDir path: "${params.outDir}/fragSize/picard", mode: "copy"
  
   input:
   set val(prefix), file(filteredBam) from chBamsFragSize
@@ -861,6 +861,26 @@ process getFragmentSize {
       H=${prefix}_insert_size_histogram.pdf \
       VALIDATION_STRINGENCY=LENIENT \
       M=0.5
+  """
+}
+
+
+process getFragmentSizeDeepTools {
+  tag "${prefix}"
+  label 'deeptools'
+  label 'medCpu'
+  label 'medMem'
+  errorStrategy 'ignore'
+  publishDir path: "${params.outDir}/fragSize/deeptools", mode: "copy"
+  input:
+  set val(prefix), file(filteredBam) from chBamsFragSizeDT
+
+  output:
+  file("*DT.pdf") into chFragmentsSizeDT
+
+  script:
+  """
+  bamPEFragmentSize --bamfiles ${filteredBam[0]} --histogram ${prefix}_insert_size_histogramDT.pdf --plotTitle "Fragment Sizes distribution by deepTools"  --numberOfProcessors ${task.cpus}  --plotFileFormat pdf
   """
 }
 

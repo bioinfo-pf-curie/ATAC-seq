@@ -876,11 +876,11 @@ process getFragmentSizeDeepTools {
   set val(prefix), file(filteredBam) from chBamsFragSizeDT
 
   output:
-  file("*DT.pdf") into chFragmentsSizeDT
+  file("*{DT.pdf,DT.txt}") into chFragmentsSizeDT
 
   script:
   """
-  bamPEFragmentSize --bamfiles ${filteredBam[0]} --histogram ${prefix}_insert_size_histogramDT.pdf --plotTitle "Fragment Sizes distribution by deepTools"  --numberOfProcessors ${task.cpus}  --plotFileFormat pdf
+  bamPEFragmentSize --bamfiles ${filteredBam[0]} --histogram ${prefix}_insert_size_histogramDT.pdf --plotTitle "Fragment Sizes distribution by deepTools"  --numberOfProcessors ${task.cpus}  --plotFileFormat pdf --table ${prefix}_insert_size_percentile_metricsDT.txt --outRawFragmentLengths ${prefix}_insert_size_distribution_metricsDT.txt
   """
 }
 
@@ -1492,7 +1492,10 @@ process multiqc {
   file ('mapping/stats/*') from chFilteredStats.collect().ifEmpty([])
   file ('mapping/*') from chStatsMqc.collect().ifEmpty([])
   file ('preseq/*') from chPreseqStats.collect().ifEmpty([])
-  file ('fragSize/*') from chFragmentsSize.collect().ifEmpty([])
+  //file ('fragSize/*') from chFragmentsSize.collect().ifEmpty([])
+  //file ('fragSize/{picard,deeptools}/*') from chFragmentsSize.concat(chFragmentsSizeDT).collect().ifEmpty([])
+  file ('fragSize/picard/*') from chFragmentsSize.collect().ifEmpty([])
+  file ('fragSize/deeptools/*') from chFragmentsSizeDT.collect().ifEmpty([])
   file ('deepTools/*') from chDeeptoolsSingleMqc.collect().ifEmpty([])
   //file ("deepTools/*") from chDeeptoolsCorrelMqc.collect().ifEmpty([])
   file ("deepTools/*") from chDeeptoolsFingerprintMqc.collect().ifEmpty([])

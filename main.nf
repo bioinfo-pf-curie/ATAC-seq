@@ -80,7 +80,6 @@ def helpMessage() {
   --skipDeepTools [bool]             Skips deeptools QC
   --skipPeakCalling [bool]           Skips peak calling
   --skipPeakAnno [bool]              Skips peak annotation
-  --skipFeatCounts [bool]            Skips feature count
   --skipMultiQC [bool]               Skips MultiQC step
   --skipShift [bool]                 Skips reads shifting for Tn5 correction (+4/-5bp)
   --skipGenrichPeakCalling           Skips Genrich peak calling
@@ -1292,7 +1291,7 @@ process getSoftwareVersions{
   file 'v_genrich.txt' from chGenrichVersion.first().ifEmpty([])
   file 'v_preseq.txt' from chPreseqVersion.first().ifEmpty([])
   file 'v_deeptools.txt' from chDeeptoolsVersion.first().ifEmpty([])
-  file 'v_featurecounts.txt' from chFeaturecountsVersion.first().ifEmpty([])
+  //file 'v_featurecounts.txt' from chFeaturecountsVersion.first().ifEmpty([])
   output:
   file 'software_versions_mqc.yaml' into softwareVersionsYaml
 

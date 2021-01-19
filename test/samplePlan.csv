@@ -1,0 +1,3 @@
+ID1,mDC,test/data/mDC_R1_T1_chr19_R1.fastq.gz,test/data/mDC_R1_T1_chr19_R2.fastq.gz
+ID2,mDC,test/data/mDC_R2_T1_chr19_R1.fastq.gz,test/data/mDC_R2_T1_chr19_R2.fastq.gz
+ID3,pDC,test/data/pDC_R1_T1_chr19_R1.fastq.gz,test/data/pDC_R1_T1_chr19_R2.fastq.gz

@@ -291,7 +291,7 @@ custom_plot_config:
       xmax: 1000
       logswitch: True
       logswitch_active: False
-      smooth_points: 1000
+      smooth_points : 1000
    read_distribution_profile:
       title: 'Signal enrichment around TSS'
 

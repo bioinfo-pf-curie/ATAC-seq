@@ -64,9 +64,10 @@ def helpMessage() {
   --blacklist [file]                 Path to black list regions (.bed).
 
   Calling:
+  --caller [str]                     peak caller to use ['macs2','genrich']. Default: 'macs2'
   --tn5sites [bool]                  Focus the analysis on Tn5 insertion sites (ie. work at the reads level and not at the fragment one)
   --extsize [int]                    Value to use for extsize parameter during Macs calling. Default : 150. Shift parameter will be set up as extsize/2
-
+  --peakAnno [bool]                  peak Annotation
   Annotation:          If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
   --genomeAnnotationPath             Path to genome annotations.
   --geneBed [file]                   BED annotation file with gene coordinate.
@@ -79,7 +80,6 @@ def helpMessage() {
   --skipPreseq [bool]                Skips preseq QC
   --skipDeepTools [bool]             Skips deeptools QC
   --skipPeakCalling [bool]           Skips peak calling
-  --skipPeakAnno [bool]              Skips peak annotation
   --skipMultiQC [bool]               Skips MultiQC step
   --skipShift [bool]                 Skips reads shifting for Tn5 correction (+4/-5bp)
   --skipGenrichPeakCalling           Skips Genrich peak calling
@@ -293,6 +293,7 @@ if (params.singleEnd)  summary['Fragment Size '] = params.fragmentSize
 summary['Aligner'] = params.aligner
 if (params.keepDups)  summary['Keep Duplicates'] = 'Yes'
 if (params.mapq)  summary['Min MapQ'] = params.mapq
+summary['caller']= params.caller
 summary['Mode']         = params.tn5sites ? 'Tn5-sites' : 'Fragment'
 summary['Max Memory']   = params.maxMemory
 summary['Max CPUs']     = params.maxCpus
@@ -1081,7 +1082,7 @@ process macs2 {
                           else filename }
  
   when:
-  !params.skipPeakCalling
+  !params.skipPeakCalling && params.caller == "macs2"
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacs.join(chFilteredMacsFlagstat)
@@ -1130,7 +1131,7 @@ process genrich {
             else filename }
 
   when:
-  !params.skipGenrichPeakCalling
+  !params.skipGenrichPeakCalling && params.caller == "genrich"
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
@@ -1206,7 +1207,7 @@ process peakAnnoHomer{
   publishDir path: "${params.outDir}/peakCalling/annotation/", mode: 'copy'
 
   when:
-  !params.skipPeakAnno
+  params.peakAnno
 
   input:
   set val(sample), file (peakfile), val(caller) from chPeaksHomer
@@ -1242,14 +1243,16 @@ process peakQC{
 
   input:
   file peaks from chPeakQC.collect{ it[-2] }
-  file annotations from chHomerMqc.collect()
-  file peakHeader from chPeakAnnotationHeader
+  file annotations from chHomerMqc.collect().ifEmpty([])
+  file peakHeader from chPeakAnnotationHeader.ifEmpty([])
 
   output:
   file "*.{txt,pdf}" into chMacsQcOutput
-  file "*.tsv" into chPeakMqc
+  file "*.tsv" optional true into chPeakMqc
 
+  
   script:
+  if (params.peakAnno == true)
   """
   ${baseDir}/bin/plot_macs_qc.r \\
     -i ${peaks.join(',')} \\
@@ -1262,6 +1265,14 @@ process peakQC{
     -o ./ \\
     -p annotatePeaks
   cat $peakHeader annotatePeaks.summary.txt > annotatedPeaks.summary_mqc.tsv
+  """
+  else
+  """
+  ${baseDir}/bin/plot_macs_qc.r \\
+    -i ${peaks.join(',')} \\
+    -s ${peaks.join(',').replaceAll("_peaks.narrowPeak","")} \\
+    -o ./ \\
+    -p peak
   """
 }
     
@@ -1291,7 +1302,6 @@ process getSoftwareVersions{
   file 'v_genrich.txt' from chGenrichVersion.first().ifEmpty([])
   file 'v_preseq.txt' from chPreseqVersion.first().ifEmpty([])
   file 'v_deeptools.txt' from chDeeptoolsVersion.first().ifEmpty([])
-  //file 'v_featurecounts.txt' from chFeaturecountsVersion.first().ifEmpty([])
   output:
   file 'software_versions_mqc.yaml' into softwareVersionsYaml
 
@@ -1303,7 +1313,6 @@ process getSoftwareVersions{
   """
 }
 
-/*
 process workflowSummaryMqc {
   when:
   !params.skipMultiQC
@@ -1325,8 +1334,6 @@ process workflowSummaryMqc {
         </dl>
   """.stripIndent()
 }
-*/
-
 
 process multiqc {
   label 'multiqc'
@@ -1351,8 +1358,6 @@ process multiqc {
   file ('mapping/stats/*') from chFilteredStats.collect().ifEmpty([])
   file ('mapping/*') from chStatsMqc.collect().ifEmpty([])
   file ('preseq/*') from chPreseqStats.collect().ifEmpty([])
-  //file ('fragSize/*') from chFragmentsSize.collect().ifEmpty([])
-  //file ('fragSize/{picard,deeptools}/*') from chFragmentsSize.concat(chFragmentsSizeDT).collect().ifEmpty([])
   file ('fragSize/picard/*') from chFragmentsSize.collect().ifEmpty([])
   file ('fragSize/deeptools/*') from chFragmentsSizeDT.collect().ifEmpty([])
   file ('deepTools/*') from chDeeptoolsSingleMqc.collect().ifEmpty([])

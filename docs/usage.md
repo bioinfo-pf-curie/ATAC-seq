@@ -144,9 +144,9 @@ params {
       bwaIndex      = '<path to the BWA-mem index files>'
       bowtie2Index  = '<path to the Bowtie2 index files>'
       geneBed       = '<path to a gene annotation file in bed format>'
-	  gtf           = '<path to annotation file in gtf format>'
-	  effGenomeSize = '<effective genome size>'
-	  blacklist     = '<path to black list region file>'
+      gtf           = '<path to annotation file in gtf format>'
+      effGenomeSize = '<effective genome size>'
+      blacklist     = '<path to black list region file>'
     }
     // Any number of additional genomes, key is used with --genome
   }

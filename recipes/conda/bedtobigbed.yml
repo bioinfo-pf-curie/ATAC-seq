@@ -2,5 +2,6 @@ name: bedtobigbed
 channels:
   - bioconda
 dependencies:
-  - bioconda::ucsc-bedtobigbed=366=hdd26221_0
-  - bioconda::ucsc-bedclip=366=hdd26221_0
+  - bioconda::ucsc-bedclip=377=h199ee4e_0
+  - bioconda::ucsc-bedtobigbed=377=h199ee4e_0
+

@@ -1,0 +1,6 @@
+name: genrich
+channels:
+  - bioconda
+dependencies:
+  - bioconda::genrich=0.6=hed695b0_0
+  - bioconda::bedtools=2.27.1

@@ -8,17 +8,17 @@
 [![Singularity Container available](https://img.shields.io/badge/singularity-available-7E4C74.svg)](https://singularity.lbl.gov/)
 [![Docker Container available](https://img.shields.io/badge/docker-available-003399.svg)](https://www.docker.com/)
 
-
-**UNDER CONSTRUCTION - DO NOT USE**
-
 ### Introduction
+
+This pipeline was built for **ATAC-seq** data analysis. It provides a quality controls of the samples as well as a first downstream analysis up to peak calling
+and annotation.  
+It was developed with two modes. The first one (by default) allows to detect open genomic regions and thus works at the DNA fragment level.
+The second one (`--tn5sites`) was defined to precisely detect transposase insertion sites by centering the analysis on the 5' end of each R1/R2 reads.
+It uses more suitable for motif discovery or footprinting analysis.
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. 
 It comes with containers making installation trivial and results highly reproducible.
 The current workflow was initiated from the [nf-core ATAC-seq pipeline](https://github.com/nf-core/chipseq). See the nf-core project from details on [guidelines](https://nf-co.re/).
-
-ATAC-seq analysis can be run in two modes, either to detect open genomic regions (default mode), or to precisely detect transposase insertion sites (`--tn5sites`).
-In the first case, the analysis will be performed at the level of the DNA fragment, whereas in the later case, the analysis will focus on the 5' end of each R1/R2 reads.
 
 ### Pipeline Summary
 
@@ -176,7 +176,7 @@ SAMPLE_ID | SAMPLE_NAME | FASTQ_R1 [Path to R1.fastq file] | FASTQ_R2 [For paire
 
 #### Credits
 
-This pipeline has been written by the bioinformatics platform of the Institut Curie (Valentin Laroche, Nicolas Servant)
+This pipeline has been written by the bioinformatics platform of the Institut Curie (Clément Benoit, Nicolas Servant)
 
 #### Contacts
 

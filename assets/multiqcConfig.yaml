@@ -64,14 +64,14 @@ custom_data:
               placement: 4500
             Number_of_hq_mapped_reads:
               title: 'High-Quality Alignment'
-              description: 'High-Quality Mapped Reads (mapQ > 10)'
+              description: 'High-Quality Mapped Reads (mapQ > 20)'
               scale: 'RdYlGn'
               format: '{:,.0f}'
               hidden: true
               placement: 5000
             Percent_of_hq_mapped_reads:
               title: 'High-Quality Alignment (%)'
-              description: 'High-Quality Mapped Reads (mapQ > 10)'
+              description: 'High-Quality Mapped Reads (mapQ > 20)'
               min: 0
               max: 100
               scale: 'RdYlGn'
@@ -80,14 +80,14 @@ custom_data:
               placement: 6000
             Number_of_lq_mapped_reads:
               title: 'Low-Quality Alignment'
-              description: 'Low-Quality Mapped Reads (mapQ < 10)'
+              description: 'Low-Quality Mapped Reads (mapQ < 20)'
               scale: 'RdYlGn'
               format: '{:,.0f}'
               hidden: true
               placement: 7000
             Percent_of_lq_mapped_reads:
               title: 'Low-Quality Alignment (%)'
-              description: 'Low-Quality Mapped Reads (mapQ < 10)'
+              description: 'Low-Quality Mapped Reads (mapQ < 20)'
               min: 0
               max: 100
               scale: 'RdYlGn'

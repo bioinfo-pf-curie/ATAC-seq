@@ -15,7 +15,7 @@ custom_data:
     my_stats:
         file_format: 'csv'
         section_name: 'General Metrics'
-        description: ' of sequenced data.'
+        description: ' of sequenced data. High-quality ATAC-seq experiment produce significant enrichment of reads around open chromatin regions. Thus, fraction of mitochondrial reads, low-quality alignment and PCR duplicates are expected to be low. Enrichment around Transcription Start Site (TSS) is expected to be high and is usually a good indicator of signal to noise ration. The fraction of reads in peaks (FRiP) is presented in priority from the Macs2 outputs if several peak callers have been run.'
         plot_type: 'table'
         pconfig:
             namespace: 'stats'

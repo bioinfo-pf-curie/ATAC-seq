@@ -129,8 +129,10 @@ do
     fi
 
     #PeakCalling 
-    if [ -e peakCalling/${sample}_peaks.FRiP_mqc.tsv ]; then
-	frip=$(grep "$sample" peakCalling/${sample}_peaks.FRiP_mqc.tsv | awk '{print $2}')
+    if [ -e peakCalling/${sample}_macs2_peaks.FRiP_mqc.tsv ]; then
+	frip=$(grep "$sample" peakCalling/${sample}_macs2_peaks.FRiP_mqc.tsv | awk '{print $2}')
+    elif [ -e peakCalling/${sample}_macs2_peaks.FRiP_mqc.tsv ]; then
+	frip=$(grep "$sample" peakCalling/${sample}_genrich_peaks.FRiP_mqc.tsv | awk '{print $2}')
     else
 	frip='NA'
     fi

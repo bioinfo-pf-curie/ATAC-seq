@@ -23,6 +23,8 @@ dependencies:
   - bioconda::homer=4.10
   - bioconda::idr=2.0.4.2
   - bioconda::genrich=0.6=hed695b0_0
+  - bioconda::ucsc-bedclip=377=h199ee4e_0
+  - bioconda::ucsc-bedtobigbed=377=h199ee4e_0
 
   # R-packages
   - r-base=3.4.1

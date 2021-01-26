@@ -17,10 +17,13 @@ The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool
 It comes with containers making installation trivial and results highly reproducible.
 The current workflow was initiated from the [nf-core ATAC-seq pipeline](https://github.com/nf-core/chipseq). See the nf-core project from details on [guidelines](https://nf-co.re/).
 
+ATAC-seq analysis can be run in two modes, either to detect open genomic regions (default mode), or to precisely detect transposase insertion sites (`--tn5sites`).
+In the first case, the analysis will be performed at the level of the DNA fragment, whereas in the later case, the analysis will focus on the 5' end of each R1/R2 reads.
+
 ### Pipeline Summary
 
 1. Run quality control of raw sequencing reads ([`fastqc`](https://www.bioinformatics.babraham.ac.uk/projects/fastqc/))
-2. Align reads on reference genome ([`BWA`](http://bio-bwa.sourceforge.net/) / [`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) / [`STAR`](https://github.com/alexdobin/STAR))
+2. Align reads on reference genome ([`BWA`](http://bio-bwa.sourceforge.net/) / [`Bowtie2`](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml))
 3. Sort aligned reads ([`SAMTools`](http://www.htslib.org/))
 4. Mark duplicates ([`Picard`](https://broadinstitute.github.io/picard/))
 5. Library complexity analysis ([`Preseq`](http://smithlabresearch.org/software/preseq/))
@@ -30,11 +33,15 @@ The current workflow was initiated from the [nf-core ATAC-seq pipeline](https://
    - reads marked as duplicates
    - reads that arent marked as primary alignments
    - reads that are unmapped
-   - reads mapped with a low mapping quality (multiple hits, secondary alignments, etc.)
-7. Create normalized bigWig file ([`deepTools`](https://deeptools.readthedocs.io/en/develop/index.html))
-8. Peak calling ([`MACS2`](https://github.com/taoliu/MACS))
-9. Peak annotation and QC ([`HOMER`](http://homer.ucsd.edu/homer/ngs/annotation.html))
-10. Results summary ([`MultiQC`](https://multiqc.info/))
+   - reads mapped with a low mapping quality
+7. Reads shifting to correct for transposase insertin bias ([`deepTools`](https://deeptools.readthedocs.io/en/develop/index.html))
+8. Calcule fragment size distribution ([`picard`](https://gatk.broadinstitute.org/hc/en-us/articles/360037055772-CollectInsertSizeMetrics-Picard-))
+9. Compute TSS enrichment for both nuclesome free and nucleosome bound regions ([`deepTools`](https://deeptools.readthedocs.io/en/develop/index.html))
+10. Create normalized bigWig file ([`deepTools`](https://deeptools.readthedocs.io/en/develop/index.html))
+11. Peak calling ([`MACS2`](https://github.com/taoliu/MACS), [`Genrich`](https://github.com/jsh58/Genrich))
+12. Convert peaks file into bigBed file ([`UCSCtools`](http://hgdownload.soe.ucsc.edu/admin/exe/))
+13. Peak annotation and QC ([`HOMER`](http://homer.ucsd.edu/homer/ngs/annotation.html))
+14. Results summary ([`MultiQC`](https://multiqc.info/))
 
 ### Quick help
 
@@ -48,7 +55,7 @@ ATAC-seq v1.0.1
 Usage:
 
 nextflow run main.nf --reads '*_R{1,2}.fastq.gz' -profile conda --genomeAnnotationPath '/data/annotations/pipelines' --genome 'hg19'
-nextflow run main.nf --samplePlan 'sample_plan.csv' --design 'design.csv' -profile conda --genomeAnnotationPath '/data/annotations/pipelines' --genome 'hg19'
+nextflow run main.nf --samplePlan 'sample_plan.csv' -profile conda --genomeAnnotationPath '/data/annotations/pipelines' --genome 'hg19'
 
 Mandatory arguments:
 --reads [file]                     Path to input data (must be surrounded with quotes)
@@ -73,26 +80,31 @@ Filtering:
 --mapq [int]                       Minimum mapping quality to consider. Default: false
 --keepDups [bool]                  Do not remove duplicates afer marking. Default: false
 --keepSingleton [bool]             Keep unpaired reads. Default: false
+--keepMito [bool]                  Do not filter reads from mitochrondrial chromosomal. Default: false
 --blacklist [file]                 Path to black list regions (.bed).
+
+Calling:
+--caller [str]                     Peak caller to use ['macs2','genrich']. Several tools can be specified (comma separated). Default: 'macs2'
+--tn5sites [bool]                  Focus the analysis on Tn5 insertion sites (ie. work at the reads level and not at the fragment one)
+--extsize [int]                    Value to use for extsize parameter during Macs calling. Shift parameter will be set up as extsize/2. Default: 73
 
 Annotation:          If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
 --geneBed [file]                   BED annotation file with gene coordinate.
 --gtf [file]                       GTF annotation file. Used in HOMER peak annotation
 --effGenomeSize [int]              Effective Genome size
---tssSize [int]                    Distance (upstream/downstream) to transcription start point to consider. Default: 2000
 
 Skip options:        All are false by default
 --skipFastqc [bool]                Skips fastQC
+--skipShift [bool]                 Skips reads shifting to correct for transposase bias
 --skipPreseq [bool]                Skips preseq QC
 --skipDeepTools [bool]             Skips deeptools QC
 --skipPeakcalling [bool]           Skips peak calling
 --skipPeakanno [bool]              Skips peak annotation
---skipFeatCounts [bool]            Skips feature count
 --skipMultiQC [bool]               Skips MultiQC step
 
 Other options:
+--metadata [file]                  Path to metadata file for MultiQC report
 --outdir [file]                    The output directory where the results will be saved
---email [str]                      Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
 -name [str]                        Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
 
 =======================================================

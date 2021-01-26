@@ -61,33 +61,32 @@ def helpMessage() {
   --mapq [int]                       Minimum mapping quality to consider. Default: 0
   --keepDups [bool]                  Do not remove duplicates afer marking. Default: false
   --keepSingleton [bool]             Keep unpaired reads. Default: false
+  --keepMito [bool]                  Do not filter reads from mitochrondrial chromosomal. Default: false
   --blacklist [file]                 Path to black list regions (.bed).
 
   Calling:
-  --caller [str]                     peak caller to use ['macs2','genrich']. Default: 'macs2'
+  --caller [str]                     Peak caller to use ['macs2','genrich']. Several tools can be specified (comma separated). Default: 'macs2'
   --tn5sites [bool]                  Focus the analysis on Tn5 insertion sites (ie. work at the reads level and not at the fragment one)
-  --extsize [int]                    Value to use for extsize parameter during Macs calling. Default : 150. Shift parameter will be set up as extsize/2
-  --peakAnno [bool]                  peak Annotation
+  --extsize [int]                    Value to use for extsize parameter during Macs calling. Shift parameter will be set up as extsize/2. Default: 73
+
   Annotation:          If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
   --genomeAnnotationPath             Path to genome annotations.
   --geneBed [file]                   BED annotation file with gene coordinate.
   --gtf [file]                       GTF annotation file. Used in HOMER peak annotation
   --effGenomeSize [int]              Effective Genome size
-  --tssSize [int]                    Distance (upstream/downstream) to transcription start point to consider. Default: 2000
 
   Skip options:        All are false by default
   --skipFastqc [bool]                Skips fastQC
   --skipPreseq [bool]                Skips preseq QC
+  --skipShift [bool]                 Skips reads shifting for Tn5 correction (+4/-5bp)
   --skipDeepTools [bool]             Skips deeptools QC
   --skipPeakCalling [bool]           Skips peak calling
+  --skipPeakAnno                     Skips peak annotation
   --skipMultiQC [bool]               Skips MultiQC step
-  --skipShift [bool]                 Skips reads shifting for Tn5 correction (+4/-5bp)
-  --skipGenrichPeakCalling           Skips Genrich peak calling
 
   Other options:
   --metadata [file]                  Path to metadata file for MultiQC report
   --outDir [file]                    The output directory where the results will be saved
-  --email [str]                      Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
   -name [str]                        Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
 
   =======================================================
@@ -282,7 +281,6 @@ if (params.samplePlan) {
 } else{
   summary['Reads']      = params.reads
 }
-summary['Design']       = params.design ?: "None"
 summary['Annotation']   = params.genomeAnnotationPath
 summary['Fasta Ref']    = params.fasta
 summary['GTF']          = params.gtf
@@ -291,10 +289,12 @@ if (params.blacklist)  summary['Blacklist '] = params.blacklist
 summary['Data Type']    = params.singleEnd ? 'Single-End' : 'Paired-End'
 if (params.singleEnd)  summary['Fragment Size '] = params.fragmentSize
 summary['Aligner'] = params.aligner
-if (params.keepDups)  summary['Keep Duplicates'] = 'Yes'
-if (params.mapq)  summary['Min MapQ'] = params.mapq
-summary['caller']= params.caller
 summary['Mode']         = params.tn5sites ? 'Tn5-sites' : 'Fragment'
+summary['Keep Duplicates'] = params.keepDups ? 'Yes':'No'
+summary['Keep Singleton'] = params.keepSingleton ? 'Yes':'No'
+summary['Keep Mito'] = params.keepMito ? 'Yes':'No'
+summary['Min MapQ'] = params.mapq
+summary['Peak Calling']= params.caller
 summary['Max Memory']   = params.maxMemory
 summary['Max CPUs']     = params.maxCpus
 summary['Max Time']     = params.maxTime
@@ -406,14 +406,6 @@ if (params.samplePlan){
         }
        .into { chSplan; chSplanCheck }
   }
-} else if(params.bamPaths){
-  Channel
-     .from(params.bamPaths)
-     .collectFile() {
-       item -> ["sample_plan.csv", item[0] + ',' + item[0] + ',' + item[1][0] + '\n']
-      }
-     .into { chSplan; chSplanCheck }
-  params.aligner = false
 } else {
   if (params.singleEnd){
     Channel
@@ -432,78 +424,6 @@ if (params.samplePlan){
    }
 }
 
-/****************
- * Design file
- */
-
-if (!params.design) {
-  log.info "=================================================================\n" +
-            "  INFO: No design file detected.\n" +
-            "  Peak calling and annotation will be skipped.\n" +
-            "  Please set up a design file '--design' to run these steps.\n" +
-            "================================================================"
-}
-
-if (params.design){
-  Channel
-    .fromPath(params.design)
-    .ifEmpty { exit 1, "Design file not found: ${params.design}" }
-    .into { chDesignCheck; chDesignControl; chDesignMqc }
-
-  chDesignControl
-    .splitCsv(header:true)
-    .map { row ->
-      return [ row.SAMPLEID, row.SAMPLENAME, row.GROUP, row.REPLICATE ]
-     }
-    .dump(tag : 'chDesignControl')
-    .into { chDesignControl; chDesignControlGenrich; chDesignControlGroups; chDesignControlGroupsGenrich }
-}else{
-  chDesignControl = Channel.empty()
-  chDesignControlGenrich = Channel.empty()
-  chDesignControlGroups = Channel.empty()
-  chDesignControlGroupsGenrich = Channel.empty()
-  chDesignCheck = Channel.empty()
-  chDesignMqc = Channel.empty()
-}
-
-process checkDesign {
-    tag "$design"
-    publishDir "${params.outDir}/pipelineInfo", mode: 'copy'
-
-    when:
-    params.design
-
-    input:
-    file design from chDesignCheck
-    file samplePlan from chSplanCheck
-
-    output:
-    path '*.csv' into chDesignReadsCsv
-
-    script:
-    optSE = params.singleEnd ? "--singleEnd" : ""
-    """
-    ${baseDir}/bin/checkDesign.py -d $design -s $samplePlan -o design_reads.csv ${optSE}
-    """
-}
-
-/*
-// Boolean value for replicates existing in design
-replicatesExist = designReplicatesExist
-                      .map { it -> it[3].toInteger() }
-                      .flatten()
-                      .max()
-                      //.dump(tag:'replicatesexists')
-                      .val > 1
-
-// Boolean value for multiple groups existing in design
-multipleGroups = designMultipleSamples
-                     .map { it -> it[2]}
-                     .flatten()
-                     .unique()
-                     .count()
-                     .val > 1
-*/
 
 /*********************************************************
 /*
@@ -796,9 +716,8 @@ process readsShifting {
   label 'medCpu'
   label 'medMem'
   publishDir path: "${params.outDir}/mapping", mode: 'copy',
-    saveAs: {filename ->
-             if (filename.endsWith("_filtered_shifted.bam") || (filename.endsWith("_filtered_shifted.bam.bai"))) filename
-             else null}
+    saveAs: {filename -> if (params.saveAlignedIntermediates) filename
+                         else null}
 
   when: !params.skipShift
 
@@ -807,6 +726,7 @@ process readsShifting {
 
   output:
   set val(prefix), file("*filtered_shifted.{bam,bam.bai}") into chShiftBams
+
   script:
   """
   alignmentSieve -b ${filteredBam[0]} -p ${task.cpus} --ATACshift -o ${prefix}_filtered_shifted_tmp.bam
@@ -818,7 +738,7 @@ process readsShifting {
 if (! params.skipShift){
   chShiftBams
     .dump(tag : 'fbams')
-    .into{ chBamsFragSize;chBamsFragSizeDT;
+    .into{ chBamsFragSize;
            chBamsMacs; chBamsGenrich;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
@@ -827,7 +747,7 @@ if (! params.skipShift){
 }else{
   chFilteredBamsNoShift
     .dump(tag : 'fbams')
-    .into{ chBamsFragSize;chBamsFragSizeDT;
+    .into{ chBamsFragSize;
            chBamsMacs; chBamsGenrich;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
@@ -845,7 +765,7 @@ process getFragmentSize {
   label 'lowCpu'
   label 'medMem'
 
-  publishDir path: "${params.outDir}/fragSize/picard", mode: "copy"
+  publishDir path: "${params.outDir}/fragSize/", mode: "copy"
  
   input:
   set val(prefix), file(filteredBam) from chBamsFragSize
@@ -864,27 +784,6 @@ process getFragmentSize {
   """
 }
 
-
-process getFragmentSizeDeepTools {
-  tag "${prefix}"
-  label 'deeptools'
-  label 'medCpu'
-  label 'medMem'
-  errorStrategy 'ignore'
-  publishDir path: "${params.outDir}/fragSize/deeptools", mode: "copy"
-  input:
-  set val(prefix), file(filteredBam) from chBamsFragSizeDT
-
-  output:
-  file("*{DT.pdf,DT.txt}") into chFragmentsSizeDT
-
-  script:
-  """
-  bamPEFragmentSize --bamfiles ${filteredBam[0]} --histogram ${prefix}_insert_size_histogramDT.pdf --plotTitle "Fragment Sizes distribution by deepTools"  --numberOfProcessors ${task.cpus}  --plotFileFormat pdf --table ${prefix}_insert_size_percentile_metricsDT.txt --outRawFragmentLengths ${prefix}_insert_size_distribution_metricsDT.txt
-  """
-}
-
-
 /* 
  * BigWig Tracks
  */
@@ -894,7 +793,9 @@ process bigWig {
   label 'deeptools'
   label 'medCpu'
   label 'medMem'
-  publishDir "${params.outDir}/bigWig", mode: "copy"
+  publishDir "${params.outDir}/bigWig", mode: "copy",
+              saveAs: {filename -> if (filename.endsWith("norm.bigwig")) filename
+                       else null}
 
   input:
   set val(prefix), file(filteredBams) from chBamsBigWig
@@ -984,48 +885,6 @@ process deepToolsComputeMatrix{
   """
 }
 
-
-
-
-/*
-process deepToolsCorrelationQC{
-  label 'deeptools'
-  label 'medCpu'
-  label 'medMem'
-  publishDir "${params.outDir}/deepTools/correlationQC", mode: "copy"
-
-  when:
-  allPrefix.size() >= 2 && !params.skipDeepTools
-
-  input:
-  file(allBams) from chBamDTCor.map{it[1][0]}.collect()
-  file(allBai) from chBaiDTCor.map{it[1][1]}.collect()
-  val (allPrefix) from chSampleDTCor.map{it[0]}.collect()
-  file(BLbed) from chBlacklistCorrelation.ifEmpty([])
-
-  output:
-  file "bams_correlation.pdf" into chDeeptoolsCorrel
-  file "bams_correlation.tab" into chDeeptoolsCorrelMqc
-  
-  script:
-  blacklistParams = params.blacklist ? "--blackListFileName ${BLbed}" : "" 
-  allPrefix = allPrefix.toString().replace("[","")
-  allPrefix = allPrefix.replace(","," ")
-  allPrefix = allPrefix.replace("]","")
-  """
-  multiBamSummary bins -b $allBams \\
-                        -o bams_summary.npz \\
-                        -p ${task.cpus} \\
-                        ${blacklistParams}
-
-  plotCorrelation -in bams_summary.npz \\
-                  -o bams_correlation.pdf \\
-                  -c spearman -p heatmap -l $allPrefix \\
-                  --outFileCorMatrix bams_correlation.tab
-  """
-}
-*/
-
 process deepToolsFingerprint{
   label 'deeptools'
   label 'medCpu'
@@ -1082,7 +941,7 @@ process macs2 {
                           else filename }
  
   when:
-  !params.skipPeakCalling && params.caller == "macs2"
+  !params.skipPeakCalling && params.caller =~ "macs2"
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsMacs.join(chFilteredMacsFlagstat)
@@ -1109,9 +968,9 @@ process macs2 {
     --SPMR --trackline --bdg \\
     ${opts}
 
-  cat ${prefix}_macs2_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_peaks.count_mqc.tsv
+  cat ${prefix}_macs2_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_macs2_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_macs2_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_peaks.FRiP_mqc.tsv
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_macs2_peaks.FRiP_mqc.tsv
   """
 }
 
@@ -1130,7 +989,7 @@ process genrich {
             else filename }
 
   when:
-  !params.skipGenrichPeakCalling && params.caller == "genrich"
+  !params.skipGenrichPeakCalling && params.caller =~ "genrich"
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
@@ -1151,16 +1010,16 @@ process genrich {
 
   sed -i '1 i\\track type=narrowPeak name=\"${prefix}_genrich\" description=\"${prefix}_genrich\" nextItemButton=on' ${prefix}_Genrich_peaks.narrowPeak
 
-  cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_peaks.count_mqc.tsv
+  cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_genrich_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
-  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_peaks.FRiP_mqc.tsv
+  grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_genrich_peaks.FRiP_mqc.tsv
   """
 }
 
 chMacsPeaks
   .concat(chGenrichPeaks)
   .dump(tag : 'peaks')
-  .into{ chPeaksHomer; chPeakQC; chIdrReplicates; chIdrGroups }
+  .into{ chPeaksHomer; chPeakQC }
 
 process narrowPeaksToBigBed {
   tag "${prefix}"
@@ -1168,8 +1027,8 @@ process narrowPeaksToBigBed {
   label 'medCpu'
   label 'medMem'
   publishDir path: "${params.outDir}/peakCalling", mode: 'copy',
-    saveAs: { filename -> if (filename.endsWith("Genrich_peaks.narrowPeak.bb")) "genrich/bigBeds/$filename"
-            else if (filename.endsWith("macs2_peaks.narrowPeak.bb")) "macs2/bigBeds/$filename"
+    saveAs: { filename -> if (filename.endsWith("Genrich_peaks.narrowPeak.bb")) "genrich/$filename"
+            else if (filename.endsWith("macs2_peaks.narrowPeak.bb")) "macs2/$filename"
             else filename }
 
   input:
@@ -1181,13 +1040,9 @@ process narrowPeaksToBigBed {
 
   script:
   """
-  awk -v OFS='\t' '{\$5=\$5>1000?1000:\$5} {print}' ${peakfile} | tail -n +2 | cut -f 1-6 > ${prefix}_${caller}_peaks.narrowPeak_normalized_score
-
-  sort -k1,1 -k2,2n ${prefix}_${caller}_peaks.narrowPeak_normalized_score > ${prefix}_${caller}_peaks.narrowPeak_normalized_score_sorted
-
-  bedClip -truncate ${prefix}_${caller}_peaks.narrowPeak_normalized_score_sorted ${chrSizes} ${prefix}_${caller}_peaks.narrowPeak_normalized_score_sorted_clipped
-
-  bedToBigBed -type=bed6 ${prefix}_${caller}_peaks.narrowPeak_normalized_score_sorted_clipped ${chrSizes} ${prefix}_${caller}_peaks.narrowPeak.bb
+  awk -v OFS='\t' '{\$5=\$5>1000?1000:\$5} {print}' ${peakfile} | tail -n +2 | cut -f 1-6 | sort -k 1,1 -k2,2n > ${prefix}_${caller}.tmp
+  bedClip -truncate ${prefix}_${caller}.tmp ${chrSizes} ${prefix}_${caller}.bedclip
+  bedToBigBed -type=bed6 ${prefix}_${caller}.bedclip ${chrSizes} ${prefix}_${caller}_peaks.narrowPeak.bb
   """
 }
 
@@ -1204,7 +1059,7 @@ process peakAnnoHomer{
   publishDir path: "${params.outDir}/peakCalling/annotation/", mode: 'copy'
 
   when:
-  params.peakAnno
+  !params.skipPeakAnno
 
   input:
   set val(sample), file (peakfile), val(caller) from chPeaksHomer
@@ -1228,6 +1083,7 @@ process peakAnnoHomer{
 /*
  * Peak calling & annotation QC
  */
+
 process peakQC{
   label 'r'
   label 'medCpu'
@@ -1236,7 +1092,7 @@ process peakQC{
   errorStrategy 'ignore'
 
   when:
-  !params.skipPeakQC && params.design
+  !params.skipPeakAnno
 
   input:
   file peaks from chPeakQC.collect{ it[-2] }
@@ -1246,10 +1102,8 @@ process peakQC{
   output:
   file "*.{txt,pdf}" into chMacsQcOutput
   file "*.tsv" optional true into chPeakMqc
-
   
   script:
-  if (params.peakAnno == true)
   """
   ${baseDir}/bin/plot_macs_qc.r \\
     -i ${peaks.join(',')} \\
@@ -1263,23 +1117,13 @@ process peakQC{
     -p annotatePeaks
   cat $peakHeader annotatePeaks.summary.txt > annotatedPeaks.summary_mqc.tsv
   """
-  else
-  """
-  ${baseDir}/bin/plot_macs_qc.r \\
-    -i ${peaks.join(',')} \\
-    -s ${peaks.join(',').replaceAll("_peaks.narrowPeak","")} \\
-    -o ./ \\
-    -p peak
-  """
 }
     
-if(params.skipGenrichPeakCalling){
-  chDesignControlGenrich = Channel.empty()
-}
 
 /*
  * MultiQC
  */
+
 process getSoftwareVersions{
   label 'python'
   label 'lowCpu'
@@ -1345,7 +1189,6 @@ process multiqc {
   file (splan) from chSplan.collect()
   file metadata from chMetadata.ifEmpty([])
   file multiqcConfig from chMultiqcConfig.ifEmpty([])
-  file design from chDesignMqc.collect().ifEmpty([])
   file ('softwareVersions/*') from softwareVersionsYaml.collect().ifEmpty([])
   //file ('summary/*') from workflowSummaryYaml.collect()
   file ('fastqc/*') from chFastqcMqc.collect().ifEmpty([])
@@ -1356,9 +1199,7 @@ process multiqc {
   file ('mapping/*') from chStatsMqc.collect().ifEmpty([])
   file ('preseq/*') from chPreseqStats.collect().ifEmpty([])
   file ('fragSize/picard/*') from chFragmentsSize.collect().ifEmpty([])
-  file ('fragSize/deeptools/*') from chFragmentsSizeDT.collect().ifEmpty([])
   file ('deepTools/*') from chDeeptoolsSingleMqc.collect().ifEmpty([])
-  //file ("deepTools/*") from chDeeptoolsCorrelMqc.collect().ifEmpty([])
   file ("deepTools/*") from chDeeptoolsFingerprintMqc.collect().ifEmpty([])
   file ('peakCalling/*') from chMacsOutput.collect().ifEmpty([])
   file ('peakCalling/*') from chMacsMqc.collect().ifEmpty([])

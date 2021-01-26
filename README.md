@@ -49,7 +49,7 @@ The current workflow was initiated from the [nf-core ATAC-seq pipeline](https://
 
 N E X T F L O W  ~  version 20.01.0
 ======================================================================
-ATAC-seq v1.0.1
+ATAC-seq v1.0.0
 ======================================================================
 
 Usage:
@@ -132,9 +132,9 @@ nextflow run main.nf -profile test,conda
 
 ```
 
-#### Run the pipeline from a `sample plan` and a `design` file
+#### Run the pipeline from a `sample plan`
 ```
-nextflow run main.nf --samplePlan MY_SAMPLE_PLAN --design MY_DESIGN --genome 'hg19' --genomeAnnotationPath ANNOTATION_PATH --outdir MY_OUTPUT_DIR
+nextflow run main.nf --samplePlan MY_SAMPLE_PLAN --genome 'hg19' --genomeAnnotationPath ANNOTATION_PATH --outdir MY_OUTPUT_DIR
 
 ```
 

@@ -7,20 +7,22 @@
 * [Main arguments](#main-arguments)
     * [`--reads`](#--reads)
     * [`--samplePlan`](#--samplePlan)
-    * [`--design`](#--design)
     * [`--singleEnd`](#--singleend)
     * [`--fragmentSize`](#--fragmentSize)
 * [Reference genomes](#reference-genomes)
     * [`--genome`](#--genome)
-    * [`--spike`](#--spike)
     * [`--genomeAnnotationPath`](#--genomeAnnotationPath)
 * [Alignment](#alignment)
     * [`--aligner`](#--aligner)
 * [Filtering](#filtering)
     * [`--mapq`](#--mapq)
     * [`--keepDups`](#--keepDups)
-* [Annotation](#annotation)
-    * [`--tssSize`](#--tssSize)
+	* [`--keepMito`](#--keepMito)
+	* [`--keepSingleton`](#--keepSingleton)
+* [Peak calling](#peak-calling)
+    * [`--caller`](#--caller)
+	* [`--tn5sites`](#--tn5sites)
+	* [`--extsize`](#--extisze)
 * [Profiles](#profiles)
 * [Job resources](#job-resources)
 * [Automatic resubmission](#automatic-resubmission)
@@ -96,23 +98,6 @@ The sample plan is a csv file with the following information :
 
 Sample ID | Sample Name | Path to R1 fastq file | Path to R2 fastq file
 
-### `--design`
-
-Specify a `design` file for extended analysis.
-
-```bash
---design 'path/to/data/design.csv'
-```
-
-A design control is a csv file that list all experimental samples, their IDs, the associated input control (or IgG), the replicate number and the expected peak type.
-The design control is expected to be created as below :
-
-SAMPLE_ID | CONTROL_ID | SAMPLE_NAME | GROUP | PEAK_TYPE
-
-The `--samplePlan` and the `--design` will be checked by the pipeline and have to be rigorously defined in order to make the pipeline work.  
-Note that the control is optional if not available but is highly recommanded.  
-If the `design` file is not specified, the pipeline will run until the alignment, QCs and track generation. The peak calling and the annotation will be skipped.
-
 ### `--singleEnd`
 
 By default, the pipeline expects paired-end data. If you have single-end data, you need to specify `--singleEnd` on the command line when you launch the pipeline. A normal glob pattern, enclosed 
@@ -158,7 +143,6 @@ params {
       fasta         = '<path to the genome fasta file>'
       chrsize       = '<path to the chromosome lenght file>'
       bwaIndex      = '<path to the BWA-mem index files>'
-      starIndex     = '<path to the STAR index files>'
       bowtie2Index  = '<path to the Bowtie2 index files>'
       geneBed       = '<path to a gene annotation file in bed format>'
 	  gtf           = '<path to annotation file in gtf format>'
@@ -182,24 +166,6 @@ Note that these paths can be updated on command line using the following paramet
 - `--saveAlignedIntermediates` - Save the BAM files from the Aligment step  - not done by default
 
 
-### `--spike`
-
-In addition, the `--spike` option can be used to specify a spike-in genome (default: false).
-
-```bash
---spike 'dmelr6'
-```
-
-If a `--spike` is specified, the reads will be mapped both on the reference and on the spike genomes. Then, ambiguous mapped reads aligned on both genomes will be discarded, and reads aligned only on the spike genome will be used to calculate a normalization factor. This normalization factor will be applied to the `bigWig` process to generate spike-in normalized tracks.
-
-All genomes available in the `conf/genome.config` can be used, exactly as the `-genome` option.
-
-Note that in this case, the paths can be updated on command line using the following parameters:
-- `--spikeFasta` - Path the spike fasta file
-- `--spikeStarIndex` - Path to STAR index
-- `--spikeBowtie2Index` - Path to HiSAT2 index
-- `--spikeBwaIndex` - Path to TopHat2 index
-
 ### `--genomeAnnotationPath`
 
 The `--genomeAnnotationPath` define where all annotations are stored. This path can be defined on the command line or set up in the different configuration file during the pipeline installation.
@@ -209,7 +175,7 @@ See `conf/installation.md` for details.
 
 ### `--aligner`
 
-Specify which tool must be used for reads alignment. The expected values are `star`, `bwa-mem` or `bowtie2` (default: `bwa-mem`).
+Specify which tool must be used for reads alignment. The expected values are `bwa-mem` or `bowtie2` (default: `bwa-mem`).
 
 ```bash
 --aligner 'bowtie2' 
@@ -235,14 +201,54 @@ Use this option to keep the duplicates.
 --keepDuplicates
 ```
 
-## Annotation
+### `--keepMito`
 
-### `--tssSize`
-
-Defines the regions upstream/downstream as the transcription start site use in the `featureCounts` process. Default: 2000
+It is usually recommanded to remove reads aligned on mitochondrial chromosome which can represent 
+a high fraction of reads for some cell types.
+Use this option if you do not want to apply this filter.
 
 ```bash
---tssSize '2000' 
+--keepMito
+```
+
+### `--keepSingleton`
+
+Use this option to keep singleton reads in the analysis which are usually removed by default.
+
+```bash
+--keepSingleton
+```
+
+## Peak calling
+
+### `--caller`
+
+Specify which tool(s) to use to call peaks in the ATAC-seq data. Available tools are `macs2` and `genrich`.
+Both tools can be specified (comma separated).
+
+```bash
+--caller 'macs2,genrich' 
+```
+
+### `--tn5sites`
+
+Use this option to focus the analysis on the transposase insertion site, which are usually centered around 5' end
+of R1/R2 reads. Activating this option has an impact on `bigwig` files and peak calling parameters.
+This parameter is usually advised for motif analysis such as footprinting.
+
+When the option is turned off (the default), reads are usually extended in order to work at the fragment level.
+
+```bash
+--tn5sites
+```
+
+### `--extsize`
+
+Extension parameter for macs2 peak calling when `--tn5sites` is specified.
+The macs2 shift parameter is automatically set as extsize/2.
+
+```
+--extisze 150
 ```
 
 ## Profiles
@@ -290,8 +296,13 @@ The following `-profile` are available. If `-profile` is not specified at all th
 
 The pipeline is made with a few *skip* options that allow to skip optional steps in the workflow.
 The following options can be used:
-- `--skip_fastqc` - Skip FastQC
-- `--skip_multiqc` - Skip MultiQC
+- `--skipFastqc` - Skip FastQC
+- `--skipPreseq` - Skips preseq QC
+- `--skipShift` - Skips reads shifting for Tn5 correction (+4/-5bp)
+- `--skipDeepTools` - Skips deeptools QC
+- `--skipPeakCalling` - Skips peak calling
+- `--skipPeakAnno` - Skips peak annotation
+- `--skipMultiqc` - Skip MultiQC
 				
 ### `--metadata`
 
@@ -300,10 +311,6 @@ Specify a two-columns (tab-delimited) metadata file to diplay in the final Multi
 ### `--outdir`
 
 The output directory where the results will be saved.
-
-### `--email`
-
-Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits. If set in your user config file (`~/.nextflow/config`) then you don't need to speicfy this on the command line for every run.
 
 ### `-name`
 
@@ -344,7 +351,7 @@ Should be a string in the format integer-unit. eg. `--maxTime '2.h'`
 Use to set a top-limit for the default CPU requirement for each process.
 Should be a string in the format integer-unit. eg. `--maxCpus 1`
 
-### `--multiqc_config`
+### `--multiqcConfig`
 
 Specify a path to a custom MultiQC configuration file.
 

@@ -30,15 +30,14 @@
 * [Other command line parameters](#other-command-line-parameters)
     * [`--skip*`](#--skip*)
     * [`--metadata`](#--metadta)
-    * [`--outdir`](#--outdir)
-    * [`--email`](#--email)
+    * [`--outDir`](#--outDir)
     * [`-name`](#-name-single-dash)
     * [`-resume`](#-resume-single-dash)
     * [`-c`](#-c-single-dash)
     * [`--maxMemory`](#--maxMemory)
     * [`--maxTime`](#--maxTime)
     * [`--maxCpus`](#--maxCpus)
-    * [`--multiqc_config`](#--multiqc_config)
+    * [`--multiqcConfig`](#--multiqcConfig)
 
 
 ## General Nextflow info
@@ -67,7 +66,7 @@ results         # Finished results (configurable, see below)
 # Other nextflow hidden files, eg. history of pipeline runs and old logs.
 ```
 
-You can change the output director using the `--outdir/-w` options.
+You can change the output director using the `--outDir/-w` options.
 
 ## Main arguments
 
@@ -308,7 +307,7 @@ The following options can be used:
 
 Specify a two-columns (tab-delimited) metadata file to diplay in the final Multiqc report.
 
-### `--outdir`
+### `--outDir`
 
 The output directory where the results will be saved.
 

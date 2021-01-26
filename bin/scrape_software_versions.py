@@ -12,18 +12,14 @@ regexes = {
     'MultiQC': ['v_multiqc.txt', r"multiqc, version (\S+)"],
     'BWA': ['v_bwa.txt', r"Version: (\S+)"],
     'Bowtie2': ['v_bowtie2.txt', r"version (\S+)"],
-    'STAR': ['v_star.txt', r"STAR(\S+)"],
     'samtools': ['v_samtools.txt', r"samtools (\S+)"],
     'bedtools': ['v_bedtools.txt', r"bedtools v(\S+)"],
     'picard': ['v_picard.txt', r"([\d\.]+)-SNAPSHOT"],
     'preseq': ['v_preseq.txt', r"Version: (\S+)"],
     'deeptools': ['v_deeptools.txt', r"bamCoverage (\S+)"],
     'R': ['v_R.txt', r"R version (\S+)"],
-    'DESeq2': ['v_DESeq2.txt', r"[1] (\S+)"],
     'MACS2': ['v_macs2.txt', r"macs2 (\S+)"],
     'Genrich' : ["v_genrich.txt",r"genrich (\$+)"],
-    'epic2': ['v_epic2.txt', r"(\S+)"],
-    'idr': ['v_idr.txt', r"IDR (\S+)"]
 }
 
 
@@ -31,21 +27,16 @@ results = OrderedDict()
 results['chipseq'] = '<span style="color:#999999;\">N/A</span>'
 results['Nextflow'] = '<span style="color:#999999;\">N/A</span>'
 results['FastQC'] = '<span style="color:#999999;\">N/A</span>'
-##results['MultiQC'] = '<span style="color:#999999;\">N/A</span>'
 results['BWA'] = '<span style="color:#999999;\">N/A</span>'
 results['Bowtie2'] = '<span style="color:#999999;\">N/A</span>'
-results['STAR'] = '<span style="color:#999999;\">N/A</span>'
 results['samtools'] = '<span style="color:#999999;\">N/A</span>'
-##results['bedtools'] = '<span style="color:#999999;\">N/A</span>'
+results['bedtools'] = '<span style="color:#999999;\">N/A</span>'
 results['picard'] = '<span style="color:#999999;\">N/A</span>'
 results['preseq'] = '<span style="color:#999999;\">N/A</span>'
 results['deeptools'] = '<span style="color:#999999;\">N/A</span>'
 results['R'] = '<span style="color:#999999;\">N/A</span>'
-results['DESeq2'] = '<span style="color:#999999;\">N/A</span>'
 results['MACS2'] = '<span style="color:#999999;\">N/A</span>'
 results['Genrich'] = '<span style="color:#999999;\">N/A</span>'
-results['epic2'] = '<span style="color:#999999;\">N/A</span>'
-results['idr'] = '<span style="color:#999999;\">N/A</span>'
 
 # Search each file using its regex
 for k, v in regexes.items():

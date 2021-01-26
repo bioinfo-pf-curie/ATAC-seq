@@ -30,4 +30,3 @@ dependencies:
   - r-ggplot2=3.1.0
   - r-reshape2=1.4.3
   - r-scales=1.0.0
-  - bioconductor-deseq2=1.20.0

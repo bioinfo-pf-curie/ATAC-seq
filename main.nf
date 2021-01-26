@@ -66,7 +66,7 @@ def helpMessage() {
 
   Calling:
   --caller [str]                     Peak caller to use ['macs2','genrich']. Several tools can be specified (comma separated). Default: 'macs2'
-  --tn5sites [bool]                  Focus the analysis on Tn5 insertion sites (ie. work at the reads level and not at the fragment one)
+  --tn5sites [bool]                  Focus the analysis on Tn5 insertion sites (ie. work at the reads level and not at the fragment one). Default: false
   --extsize [int]                    Value to use for extsize parameter during Macs calling. Shift parameter will be set up as extsize/2. Default: 73
 
   Annotation:          If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
@@ -76,13 +76,13 @@ def helpMessage() {
   --effGenomeSize [int]              Effective Genome size
 
   Skip options:        All are false by default
-  --skipFastqc [bool]                Skips fastQC
-  --skipPreseq [bool]                Skips preseq QC
-  --skipShift [bool]                 Skips reads shifting for Tn5 correction (+4/-5bp)
-  --skipDeepTools [bool]             Skips deeptools QC
-  --skipPeakCalling [bool]           Skips peak calling
-  --skipPeakAnno                     Skips peak annotation
-  --skipMultiQC [bool]               Skips MultiQC step
+  --skipFastqc [bool]                Skips fastQC. Default: false
+  --skipPreseq [bool]                Skips preseq QC. Default: false
+  --skipShift [bool]                 Skips reads shifting for Tn5 correction (+4/-5bp). Default: false
+  --skipDeepTools [bool]             Skips deeptools QC. Default: false
+  --skipPeakCalling [bool]           Skips peak calling. Default: false
+  --skipPeakAnno                     Skips peak annotation. Default: false
+  --skipMultiQC [bool]               Skips MultiQC step. Default: false
 
   Other options:
   --metadata [file]                  Path to metadata file for MultiQC report

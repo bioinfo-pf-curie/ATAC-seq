@@ -27,7 +27,7 @@ The current workflow was initiated from the [nf-core ATAC-seq pipeline](https://
 3. Sort aligned reads ([`SAMTools`](http://www.htslib.org/))
 4. Mark duplicates ([`Picard`](https://broadinstitute.github.io/picard/))
 5. Library complexity analysis ([`Preseq`](http://smithlabresearch.org/software/preseq/))
-6. Filtering aligned BAM files ([`SAMTools`](http://www.htslib.org/) & [`BAMTools`](https://github.com/pezmaster31/bamtools))
+6. Filtering aligned BAM files ([`SAMTools`](http://www.htslib.org/))
    - reads mapped to mitochondrial DNA
    - reads mapped to blacklisted regions
    - reads marked as duplicates
@@ -39,7 +39,7 @@ The current workflow was initiated from the [nf-core ATAC-seq pipeline](https://
 9. Compute TSS enrichment for both nuclesome free and nucleosome bound regions ([`deepTools`](https://deeptools.readthedocs.io/en/develop/index.html))
 10. Create normalized bigWig file ([`deepTools`](https://deeptools.readthedocs.io/en/develop/index.html))
 11. Peak calling ([`MACS2`](https://github.com/taoliu/MACS), [`Genrich`](https://github.com/jsh58/Genrich))
-12. Convert peaks file into bigBed file ([`UCSCtools`](http://hgdownload.soe.ucsc.edu/admin/exe/))
+12. Convert peaks files into bigBed file ([`UCSCtools`](http://hgdownload.soe.ucsc.edu/admin/exe/))
 13. Peak annotation and QC ([`HOMER`](http://homer.ucsd.edu/homer/ngs/annotation.html))
 14. Results summary ([`MultiQC`](https://multiqc.info/))
 

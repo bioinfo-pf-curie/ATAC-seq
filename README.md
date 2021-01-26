@@ -10,11 +10,11 @@
 
 ### Introduction
 
-This pipeline was built for **ATAC-seq** data analysis. It provides a quality controls of the samples as well as a first downstream analysis up to peak calling
+This pipeline was built for **ATAC-seq** data analysis. It provides a detailed quality controls of all samples as well as a first downstream analysis including peak calling
 and annotation.  
-It was developed with two modes. The first one (by default) allows to detect open genomic regions and thus works at the DNA fragment level.
+It was developed with two modes. The first one (by default) allows to detect open genomic regions and works at the DNA fragment level.
 The second one (`--tn5sites`) was defined to precisely detect transposase insertion sites by centering the analysis on the 5' end of each R1/R2 reads.
-Its uses is recommanded for motif discovery or footprinting analysis.
+It is mainly recommanded for motif discovery or footprinting analysis.
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. 
 It comes with containers making installation trivial and results highly reproducible.

@@ -155,7 +155,6 @@ params {
 
 Note that these paths can be updated on command line using the following parameters:
 - `--fasta` - Path to genome fasta file
-- `--starIndex` - Path to STAR index
 - `--bowtie2Index` - Path to HiSAT2 index
 - `--bwaIndex` - Path to TopHat2 index
 - `--gtf` - Path to GTF file

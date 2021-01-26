@@ -176,7 +176,7 @@ SAMPLE_ID | SAMPLE_NAME | FASTQ_R1 [Path to R1.fastq file] | FASTQ_R2 [For paire
 
 #### Credits
 
-This pipeline has been written by the bioinformatics platform of the Institut Curie (Clément Benoit, Nicolas Servant)
+This pipeline has been written by the bioinformatics platform of the Institut Curie (Clement Benoit, Nicolas Servant)
 
 #### Contacts
 

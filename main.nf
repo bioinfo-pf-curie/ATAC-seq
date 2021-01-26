@@ -191,7 +191,7 @@ params.gtf = genomeRef ? params.genomes[ genomeRef ].gtf ?: false : false
 if (params.gtf) {
   Channel
     .fromPath(params.gtf, checkIfExists: true)
-    .into{chGtfHomer; chGtfFeatCounts}
+    .set{chGtfHomer}
 }
 else {
   exit 1, "GTF annotation file not specified!"
@@ -202,12 +202,11 @@ if (params.geneBed) {
   Channel
     .fromPath(params.geneBed, checkIfExists: true)
     .ifEmpty {exit 1, "BED file ${geneBed} not found"}
-    .into{chGeneBed; chGeneBedDeeptools; chGenePrepareAnnot; chGeneFeatCounts}
+    .into{chGeneBed; chGeneBedDeeptools; chGenePrepareAnnot}
 }else{
   chGeneBed = Channel.empty()
   chGeneBedDeeptools = Channel.empty()
   chGenePrepareAnnot = Channel.empty()
-  chGeneFeatCounts = Channel.empty()
 }
 
 params.blacklist = genomeRef ? params.genomes[ genomeRef ].blacklist ?: false : false
@@ -742,8 +741,7 @@ if (! params.skipShift){
            chBamsMacs; chBamsGenrich;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
-           chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
-           chBamsCounts }
+           chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint }
 }else{
   chFilteredBamsNoShift
     .dump(tag : 'fbams')
@@ -751,8 +749,7 @@ if (! params.skipShift){
            chBamsMacs; chBamsGenrich;
            chBamsBigWig;
            chBamDTCor ; chBaiDTCor; chSampleDTCor ;
-           chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint ;
-           chBamsCounts }
+           chBamDTFingerprint ; chBaiDTFingerprint ; chSampleDTFingerprint }
 }
 
 /*
@@ -989,7 +986,7 @@ process genrich {
             else filename }
 
   when:
-  !params.skipGenrichPeakCalling && params.caller =~ "genrich"
+  !params.skipPeakCalling && params.caller =~ "genrich"
 
   input:
   set val(prefix), file(bam), file(sampleFlagstat) from chBamsGenrich.join(chFilteredGenrichFlagstat)
@@ -1203,6 +1200,7 @@ process multiqc {
   file ("deepTools/*") from chDeeptoolsFingerprintMqc.collect().ifEmpty([])
   file ('peakCalling/*') from chMacsOutput.collect().ifEmpty([])
   file ('peakCalling/*') from chMacsMqc.collect().ifEmpty([])
+  file ('peakCalling/*') from chGenrichMqc.collect().ifEmpty([])
   file('peakQC/*') from chPeakMqc.collect().ifEmpty([])
   
   output:

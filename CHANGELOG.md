@@ -1,4 +1,8 @@
 ***********************************
-CHANGES IN VERSION 1.0.0
+version-1.0.0
+
+NEW FEATURES
+
+  - First stable of the atac-seq pipeline
 
 

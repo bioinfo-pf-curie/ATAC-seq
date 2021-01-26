@@ -72,7 +72,7 @@ References           If not specified in the configuration file or you wish to o
 
 Alignment:
 --aligner [str]                    Alignment tool to use ['bwa-mem', 'star', 'bowtie2']. Default: 'bwa-mem'
---saveAlignedIntermediates [bool]  Save all intermediates mapping files. Default: false  
+--saveAlignedIntermediates [bool]  Save all intermediates mapping files. Default: false
 --bwaIndex [file]                  Index for Bwa-mem aligner
 --bowtie2Index [file]              Index for Bowtie2 aligner
 
@@ -85,7 +85,7 @@ Filtering:
 
 Calling:
 --caller [str]                     Peak caller to use ['macs2','genrich']. Several tools can be specified (comma separated). Default: 'macs2'
---tn5sites [bool]                  Focus the analysis on Tn5 insertion sites (ie. work at the reads level and not at the fragment one)
+--tn5sites [bool]                  Focus the analysis on Tn5 insertion sites (ie. work at the reads level and not at the fragment one). Default: false
 --extsize [int]                    Value to use for extsize parameter during Macs calling. Shift parameter will be set up as extsize/2. Default: 73
 
 Annotation:          If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
@@ -94,13 +94,13 @@ Annotation:          If not specified in the configuration file or you wish to o
 --effGenomeSize [int]              Effective Genome size
 
 Skip options:        All are false by default
---skipFastqc [bool]                Skips fastQC
---skipShift [bool]                 Skips reads shifting to correct for transposase bias
---skipPreseq [bool]                Skips preseq QC
---skipDeepTools [bool]             Skips deeptools QC
---skipPeakcalling [bool]           Skips peak calling
---skipPeakanno [bool]              Skips peak annotation
---skipMultiQC [bool]               Skips MultiQC step
+--skipFastqc [bool]                Skips fastQC. Default: false
+--skipShift [bool]                 Skips reads shifting to correct for transposase bias. Default: false
+--skipPreseq [bool]                Skips preseq QC. Default: false
+--skipDeepTools [bool]             Skips deeptools QC. Default: false
+--skipPeakcalling [bool]           Skips peak calling. Default: false
+--skipPeakanno [bool]              Skips peak annotation. Default: false
+--skipMultiQC [bool]               Skips MultiQC step. Default: false
 
 Other options:
 --metadata [file]                  Path to metadata file for MultiQC report

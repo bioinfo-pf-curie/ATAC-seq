@@ -27,9 +27,9 @@ For further reading and documentation see the [FastQC help](http://www.bioinform
 
 ### Alignment
 
-Different tools can be used for read alignment (`STAR`, `BWA-mem`, `Bowtie2`). The mapping statistics (`Total Reads`, `Aligned Reads`, `Unique Reads`, `Multiple Reads`) are also presented in the main summary table.
+Different tools can be used for read alignment (`BWA-mem`, `Bowtie2`). The mapping statistics (`Total Fragments`, `Aligned Reads`, `High-Quality Alignment`, `Low-Quality Alignment`) are also presented in the main summary table.
 
-> **NB:** that by default, one alignment is randomly reported in case of multiple mapping sites. If necessary, those reads can be filtered using the `--mapq` option. In addition, in case of paired-end sequencing reads, singleton are discarded from the analysis
+> **NB:** By default, we set a mapping quality to 20, meaning that alignments associated with multiple mapping sites should be discarded. If necessary, the `--mapq` option can be changed.
 
 **Output directory: `mapping`**
 
@@ -43,46 +43,84 @@ Different tools can be used for read alignment (`STAR`, `BWA-mem`, `Bowtie2`). T
 The mapping statistics are presented in the MultiQC report as follows.  
 In general, we expect more than 80% of aligned reads. Samples with less than 50% of mapped reads should be further investigated, and check for adapter content, contamination, etc.
 
-![MultiQC - Bowtie2 stats plot](images/bowtie2.png)
+![MultiQC - BWA-mem stats plot](images/bwa.png)
 
-### Spike-in
-
-In the case of spike-in data, reads are aligned both on the reference and on the spike genome (`--spike`).  
-Alignments are then compared for a given sample in order to extract reference and spike-in specific BAM files.
-
-![MultiQC - Spike-in plot](images/spikes.png)
-
-The number of reads aligned to the spike-in genome are then used to calculate a scaling factor for each sample. This scaling factor will be then applied to generated spike-in normalized `bigwig`
- files.
- 
-**Output directory: `mapping`**
-  * `*_spike.bam` : Spike-in alignment files
-  
-**Output directory: `spike`**
- * `*_clean.bam` : Alignment file reads aligned on reference genome only
- * `*_clean_spike.bam` : Alignment file with reads aligned on spike genome only
-  
-  >**NB:** Note that by default, spike-in data with less than 1% of reads are discarded from the analysis, to avoid computational error due to low read number.
+## Reads Filtering
 
 ### Duplicates
 
 [Picard MarkDuplicates](https://broadinstitute.github.io/picard/command-line-overview.html) is used to mark and remove the duplicates. 
-The results are presented in the `General Metrics` table. Duplicate reads are **removed** by default from the aligned reads to mitigate for fragments in the library that may have been sequenced more than once due to PCR biases. There is an option to keep duplicate reads with the `--keepDups` parameter but its generally recommended to remove them to avoid the wrong interpretation of the results.	
+The results are presented in the `General Metrics` table. Duplicate reads are **marked** by default from the aligned reads to mitigate for fragments in the library that may have been sequenced more than once due to PCR biases. By default, duplicates are then removed during the filtering step. There is an option to keep duplicate reads with the `--keepDups` parameter but its generally recommended to remove them to avoid any wrong interpretation of the results.	
+
+**Output directory: `mapping`**
+
+* `sample_marked.bam`
+  * Aligned reads with marked duplicates only if (`--saveAlignedIntermediates`) is used.
+* `sample_marked.bam.bai`
+  * Index of aligned reads with marked duplicates
+	
+From our experience, an ATAC-seq sample with less than 25% of duplicates is usually of good quality. Samples with more than 50% of duplicates should be interpreted with caution.
+
+![MultiQC - Picard MarkDup stats plot](images/picard_deduplication.png)
+
+### Alignment cleaning
+
+Before running any downstream analysis, aligned reads are filtered as follow:
+- Low mapping quality reads are discarded (see `--mapq`).
+- Duplicates reads are filtered by default. Use `--keepDups` to switch off this filter.
+- Reads aligned to mitochondrial chromosome are filtered. Use `keepMito` to switch off this filter.
+- Singleton reads are discarded and only valid pairs are considered. Use `--keepSingleton` to switch off this filter.
+
+> **NB:** The fraction of reads aligned to mitochondrial chromosome is an important quality control of ATAC-seq experiments. For some cell types, this fraction can represent more than 50% of sequenced reads, and could therefore be an issue. Here, we considered that having less of 30% of mitochondrial reads is acceptable.
 
 **Output directory: `mapping`**
 
 * `sample_filtered.bam`
-  * Aligned reads after filtering (`--mapq`, `--keepDups`)
-  * `sample_filtered.bam.bai`
-    * Index of aligned reads after filtering
-	
-From our experience, a ChIP-seq sample with less than 25% of duplicates is usually of good quality. Samples with more than 50% of duplicates should be interpreted with caution.
+  * Aligned reads after all filtering steps.
+* `sample_filtered.bam.bai`
+  * Index of aligned and filtered reads
 
-![MultiQC - Picard MarkDup stats plot](images/picard_deduplication.png)
+### Reads shifting
+
+In ATAC-seq experiments, it is known that the transposase insertion leads to a 9bp offset. Briefly, Tn5 transposase binds to DNA as a homodimer with 9-bp of DNA between the two Tn5 molecules. Because of this, each Tn5 homodimer binding event creates two insertions, separated by 9 bp. Thus, the actual central point of the “accessible” site is in the very center of the Tn5 dimer, not the location of each Tn5 insertion. To account for this, we apply an offset to the individual Tn5 insertions, adjusting plus-stranded insertion events by +4 bp and minus-stranded insertion events by -5 bp ([source](https://www.archrproject.com/bookdown/a-brief-primer-on-atac-seq-terminology.html)).
+
+Here, we use the [deepTools](https://deeptools.readthedocs.io/en/develop/content/list_of_tools.html) alignmentSieve function to therefore correct for this Tn5 offset. Note, that this step can be skipped using the `--skipShift` option.
+In practice, for fragment level analysis and detection of open-chromatin genomic regions, this option has a very limited impact on the results.
+
+**Output directory: `mapping`**
+
+* `sample_filtered_shifted.bam`
+  * Aligned reads after filtering and shifting steps.
+* `sample_filtered_shifted.bam.bai`
+  * Index of aligned, filtered and shifted reads
 
 ## Quality controls
 
 From the filtered and aligned reads files, the pipeline then runs several quality control steps presented below.
+
+### Fragment length distributions
+
+Tn5 transposase preferentially inserts sequencing adaptors into chromatin regions of higher accessibility. It is always recommended to optimize the ratio of cell number and enzyme concentration to better capture in vivo chromatin accessibility profiles. Thus, the size distribution of sequenced fragments of ATAC-seq libraries is an important metric of quality assessment ([Ou et al. 2018](https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-018-4559-3)).
+
+High quality ATAC-seq libraries generally contain about 50% of short fragments (< 100 bp), which represent nucleosome-free regions. The remaining reads from larger fragments therefore come from nucleosome-bound but open chromatin regions. The insert size distribution of all the fragments should show an obvious downward laddering pattern reflecting the amount and length of DNA fragments from nucleosome-free regions, and those associated with one to several nucleosomes ([source](https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-018-4559-3)). 
+
+The results from picard CollectInsertSizeMetrics gives you a quick visualisation for fragment lengths distributions.
+
+**Output directory: `fragSize`**
+
+* `insert_size_histogram.pdf`,`insert_size_metrics.txt`: CollectInsertSizeMetrics output files
+
+Here are a few examples of expected fragment size distribution.
+
+![MultiQC - picard CollectInsertSizeMetrics plots](images/insert_size_histogram.png)
+
+Experiments with with a too high ratio of Tn5 transposase concentration to the number of cells (ie. over-transposition) usually leads to an increased background signals and reduced signal-to-noise ratio.
+
+![MultiQC - picard CollectInsertSizeMetrics plots](images/insert_size_histogram_bias1.png)
+
+On the contrary, size distribution with a bias toward large fragment might have resulted from biased size selection during library preparation.
+
+![MultiQC - picard CollectInsertSizeMetrics plots](images/insert_size_histogram_bias2.png)
 
 ### Sequencing complexity
 
@@ -92,12 +130,13 @@ The [Preseq](http://smithlabresearch.org/software/preseq/) package is aimed at p
 
 * `sample_ccurve.txt`
   * Preseq expected future yield file.
-
+  
 ![MultiQC - Preseq library complexity plot](images/preseq_plot.png)
 
 ### Fingerprint
 
-[deepTools](https://deeptools.readthedocs.io/en/develop/content/list_of_tools.html) plotFingerprint is a useful QC for ChIP-seq data in order to see the relative enrichment of the IP samples with respect to the controls on a genome-wide basis. The results, however, are expected to look different for example when comparing narrow marks such as transcription factors and broader marks such as histone modifications (see [plotFingerprint docs](https://deeptools.readthedocs.io/en/develop/content/tools/plotFingerprint.html)).
+[deepTools](https://deeptools.readthedocs.io/en/develop/content/list_of_tools.html) plotFingerprint is a useful QC in order to see the relative enrichment of the samples on a genome-wide basis. 
+Experiments which are further apart from the diagonal usually show the best enrichment in peaks, and the best signal-to-noise ratio.
 
 ![MultiQC - deepTools plotFingerprint plot](images/deeptools_fingerprint_plot.png)
 
@@ -105,77 +144,34 @@ The [Preseq](http://smithlabresearch.org/software/preseq/) package is aimed at p
 
 * `*.plotFingerprint.pdf`, `*.plotFingerprint.qcmetrics.txt`, `*.plotFingerprint.raw.txt`: plotFingerprint output files.
 
-### Read distribution
+### Enrichment around Transcription Start Site (TSS)
 
-The results from deepTools plotProfile gives you a quick visualisation for the genome-wide enrichment of your samples at the TSS, and across the gene body. During the downstream analysis, you may want to refine the features/genes used to generate these plots in order to see a more specific condition-related effect.
+Enrichment around TSS is the main important quality check of ATAC-seq experiment. It usually reflects the signal-to-noise ratio of the samples and their overall quality.
+Filtered and aligned reads are split into nucleosome-free region (<100 bp, NFR) and mono/di-nucleosome bound regions (180-473 bp, NBR).
 
-![MultiQC - deepTools plotProfile plot](images/read_distribution_profile.png)
+Promoter regions of active genes are in an open chromatin state. Ideally, ATAC-seq NFR fragments (<100 bp) should thus cluster immediately upstream of the TSSs.
+By contrast, NBR fragments corresponding to mono- or di-nucleosomes should be depleted from TSSs of active promoters, but display periodic peaks of read density immediately upstream and downstream of regions.
 
-> **NB:** Note that when very different profiles (active and repressive histone marks) are presented in the same plots, it is usually difficult to see any enrichment of the repressive marks.
 
-**Output directory: `deepTools/computeMatrix/`**
+![MultiQC - deepTools plotFingerprint plot](images/NFR_TSS_enrichment.png)
 
-*  * `*.computeMatrix.mat.gz`, `*.computeMatrix.vals.mat.tab`, `*.plotProfile.pdf`: plotProfile output files
-
-### Fragment length distributions
-
-The results from picard CollectInsertSizeMetrics gives you a quick visualisation for fragment lengths distributions.
-
-![MultiQC - picard CollectInsertSizeMetrics plots](images/mDC_1_insert_size_histogram.png)
-
-**Output directory: `picard/lengths_distributions`**
-
-* `insert_size_histogram.pdf`,`insert_size_metrics.txt`: CollectInsertSizeMetrics output files
-
-### Sample correlation
-
-The read coverages for entire genome is first calculated using [deepTools](https://deeptools.readthedocs.io/en/develop/content/list_of_tools.html) multiBamSummary and all BAM files. Bins of 10kb are used. Then, the Spearman correlations between all coverage profiles are calculated and presented as a heatmap using the plotCorrelation tool.
-
-![MultiQC - deepTools plotFingerprint plot](images/deeptools_correlation_plot.png)  
-
-**Output directory: `deepTools/correlationQC/`**
-
-* `bams_correlation.pdf`,`bams_correlation.tab`: plotProfile output files
-
-### Strand-shift correlation plot
-
-[phantompeakqualtools](https://github.com/kundajelab/phantompeakqualtools) plots the strand cross-correlation of aligned reads for each sample. In a strand cross-correlation plot, reads are shifted in the direction of the strand they map to by an increasing number of base pairs and the Pearson correlation between the per-position read count for each strand is calculated. Two cross-correlation peaks are usually observed in a ChIP experiment, one corresponding to the read length ("phantom" peak) and one to the average fragment length of the library. The absolute and relative height of the two peaks are useful determinants of the success of a ChIP-seq experiment. A high-quality IP is characterized by a ChIP peak that is much higher than the "phantom" peak, while often very small or no such peak is seen in failed experiments.
-
-![MultiQC - spp strand-correlation plot](images/spp_strand_correlation_plot.png)
-
-Normalized strand coefficient (**NSC**) is the normalized ratio between the fragment-length cross-correlation peak and the background cross-correlation. NSC values range from a minimum of 1 to larger positive numbers. 1.1 is the critical threshold. Datasets with NSC values much less than 1.1 tend to have low signal to noise or few peaks (this could be biological e.g. a factor that truly binds only a few sites in a particular tissue type OR it could be due to poor quality).
-
-Relative strand correlation (**RSC**) is the ratio between the fragment-length peak and the read-length peak. RSC values range from 0 to larger positive values. 1 is the critical threshold. RSC values significantly lower than 1 (< 0.8) tend to have low signal to noise. The low scores can be due to failed and poor quality ChIP, low read sequence quality and hence lots of mis-mappings, shallow sequencing depth (significantly below saturation) or a combination of these. Like the NSC, datasets with few binding sites (< 200), which is biologically justifiable, also show low RSC scores.
-
-The NSC and RSC values are reported in the `General Metrics` table. We then applied the threshold from the [ENCODE guidelines](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3431496/) which usually considers as low quality samples, the experiments with a NSC < 1.1 or RSC < 0.8.
-
-> **NB:** Note that the interpretation of the strand-shift cross correlation may vary according to the type of experiments. For instance, repressive histone marks with broad domains such as H3K27me3, usually have low NSC/RSC values.
+![MultiQC - deepTools plotFingerprint plot](images/NBR_TSS_enrichment.png)
 
 ## BigWig tracks
 
 The [bigWig](https://genome.ucsc.edu/goldenpath/help/bigWig.html) format is in an indexed binary format useful for displaying dense, continuous data in Genome Browsers such as the [UCSC](https://genome.ucsc.edu/cgi-bin/hgTracks) and [IGV](http://software.broadinstitute.org/software/igv/). This mitigates the need to load the much larger BAM files for data visualisation purposes which will be slower and result in memory issues. The coverage values represented in the bigWig file can also be normalised in order to be able to compare the coverage across multiple samples - this is not possible with BAM files. The bigWig format is also supported by various bioinformatics software for downstream processing such as meta-profile plotting.
 
-Note that the bigwig files are normalized using the total number of reads per bin (RPGC = number of reads per bin / scaling factor for 1x average coverage)
+Note that the bigwig files are normalized over 1 Million reads.
+By default, the bigWig tracks are generated at the DNA fragment level (with reads extension) to detect open chromatin region. If the `--tn5sites` option is activated, reads are not extended to fragment size.
 
 **Output directory: `bigWig`**
 
-* `sample_rpgc.bigwig` : bigwig files
+* `sample_norm.bigwig` : bigwig files
 
-If the `--spike` option is specified, reads aligned on the spike genome are used to calculate a scaling factor.  
-The factor is then used to normalize and generate new `bigwig` files.
 
-**Output directory: `bigWigSpike`**
 
-* `*.sf` : scaling factor calculated by DESeq2
-* `*_spikenorm.bigwig`: spike-normalized bigwig files
 
-## Counts
 
-The [featureCounts](http://bioinf.wehi.edu.au/featureCounts/) tool is used to count the number of reads relative to the gene and promoters across all of the samples. This essentially generates a file containing a matrix where the rows represent the features, the columns represent all of the samples in the experiment, and the values represent the raw read counts.
-The promoters are defined as the regions starting +/- `--tssSize 2000` upstream/downstream the transcription start sites.
-
-**Output directory: `featCounts`**
-  * `.csv`: count table for all samples
 
 ## Peak calling
 

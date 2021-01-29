@@ -4,8 +4,8 @@ This document describes the output produced by the pipeline. Most of the plots a
 
 ## Pipeline overview
 The pipeline is built using [Nextflow](https://www.nextflow.io/)
-and processes ChIP-seq data using the steps presented in the main README file.  
-Briefly, its goal is to process ChIP-seq data for any protocol, with or without control samples, and with or without spike-ins.
+and processes ATAC-seq data using the steps presented in the main README file.  
+Briefly, it provides an exhaustive quality controls of the experiments, as well as a first downstream analysis including peak calling and annotations.
 
 The directories listed below will be created in the output directory after the pipeline has finished. 
 
@@ -57,7 +57,7 @@ The results are presented in the `General Metrics` table. Duplicate reads are **
 * `sample_marked.bam`
   * Aligned reads with marked duplicates only if (`--saveAlignedIntermediates`) is used.
 * `sample_marked.bam.bai`
-  * Index of aligned reads with marked duplicates
+  * Index of aligned reads with marked duplicates. Available only if (`--saveAlignedIntermediates`) is used.
 	
 From our experience, an ATAC-seq sample with less than 25% of duplicates is usually of good quality. Samples with more than 50% of duplicates should be interpreted with caution.
 
@@ -112,7 +112,7 @@ The results from picard CollectInsertSizeMetrics gives you a quick visualisation
 * `insert_size_histogram.pdf`,`insert_size_metrics.txt`: CollectInsertSizeMetrics output files
 
 Here are a few examples with expected and unexpected fragment size distribution.  
-From high quality experiments, we should expect to see an enrichment at nucleosome free regions (<100 bp), followed by a periodic distribution corresponding to mono-, di-, tri-, etc. nucleosome.
+From high quality experiments, we should expect to see an enrichment at nucleosome free regions (<100 bp), followed by a periodic distribution corresponding to mono-, di-, tri-, etc. nucleosomes.
 
 ![MultiQC - picard CollectInsertSizeMetrics plots](images/insert_size_histogram.png)
 

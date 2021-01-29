@@ -277,6 +277,8 @@ fn_clean_exts:
     - '_bowtie2.log'
     - '_sorted.bam'
     - '_peaks.count_mqc'
+    - '_filtered_shifted.bam'
+    - '.ccurve.txt'
 
 #############################
 ## Display

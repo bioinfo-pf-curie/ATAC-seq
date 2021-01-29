@@ -946,6 +946,7 @@ process macs2 {
   set val(prefix), file("*macs2_peaks.narrowPeak"), val("macs2") into chMacsPeaks,chMacsPeaksbb
   file "*_mqc.tsv" into chMacsMqc
   file("v_macs2.txt") into chMacsVersion
+  file("v_bedtools.txt") into chMacsBedtoolsVersion
 
   script:
   preproc = params.tn5sites ? "bamToBed -i ${bam[0]} > ${bam[0].baseName}.bed; shift=\$(expr ${params.extsize} / 2 )" : ""
@@ -953,6 +954,7 @@ process macs2 {
   opts = params.tn5sites ? "--keep-dup all --shift -\${shift} --extsize ${params.extsize} --nomodel -q 0.01" : "--keep-dup all --nomodel -q 0.01"
   """
   echo \$(macs2 --version 2>&1) &> v_macs2.txt
+  echo \$(bedtools --version 2>&1) &> v_bedtools.txt
   ${preproc}
   macs2 callpeak \\
     ${inputs} \\
@@ -993,16 +995,16 @@ process genrich {
   set val(prefix), file("*Genrich_peaks.narrowPeak"),val("Genrich") into chGenrichPeaks,chGenrichPeaksbb
   file "*_mqc.tsv" into chGenrichMqc
   file("v_genrich.txt") into chGenrichVersion
+  file("v_bedtools.txt") into chGenrichBedtoolsVersion
 
   script:
   opts=params.tn5sites ? "-j -y -d 100" : ""
   """
   echo \$(Genrich --version) &> v_genrich.txt
+  echo \$(bedtools --version 2>&1) &> v_bedtools.txt
   samtools sort -n -@ ${task.cpus} -o ${prefix}_nsorted.bam ${bam[0]} 
   Genrich -t ${prefix}_nsorted.bam -o ${prefix}_Genrich_peaks.narrowPeak -D ${opts}
-
   sed -i '1 i\\track type=narrowPeak name=\"${prefix}_genrich\" description=\"${prefix}_genrich\" nextItemButton=on' ${prefix}_Genrich_peaks.narrowPeak
-
   cat ${prefix}_Genrich_peaks.narrowPeak | tail -n +2 | wc -l | awk -v OFS='\t' '{ print "${prefix}", \$1 }' | cat $peakCountHeader - > ${prefix}_genrich_peaks.count_mqc.tsv
   READS_IN_PEAKS=\$(intersectBed -a ${bam[0]} -b ${prefix}_Genrich_peaks.narrowPeak -bed -c -f 0.20 | awk -F '\t' '{sum += \$NF} END {print sum}')
   grep 'mapped (' $sampleFlagstat | awk -v a="\$READS_IN_PEAKS" -v OFS='\t' '{print "${prefix}", a/\$1}' | cat $fripScoreHeader - > ${prefix}_genrich_peaks.FRiP_mqc.tsv
@@ -1093,11 +1095,13 @@ process peakQC{
   file peakHeader from chPeakAnnotationHeader.ifEmpty([])
 
   output:
-  file "*.{txt,pdf}" into chMacsQcOutput
-  file "*.tsv" optional true into chPeakMqc
-  
+  file("*.{txt,pdf}") into chMacsQcOutput
+  file("*.tsv") optional true into chPeakMqc
+  file("v_R.txt") into chRVersion
+
   script:
   """
+  echo \$(R --version 2>&1) &> v_R.txt 
   ${baseDir}/bin/plot_macs_qc.r \\
     -i ${peaks.join(',')} \\
     -s ${peaks.join(',').replaceAll("_peaks.narrowPeak","")} \\
@@ -1136,6 +1140,9 @@ process getSoftwareVersions{
   file 'v_genrich.txt' from chGenrichVersion.first().ifEmpty([])
   file 'v_preseq.txt' from chPreseqVersion.first().ifEmpty([])
   file 'v_deeptools.txt' from chDeeptoolsVersion.first().ifEmpty([])
+  file 'v_bedtools.txt' from chGenrichBedtoolsVersion.concat(chMacsBedtoolsVersion).first().ifEmpty([])
+  file 'v_r.txt' from chRVersion.ifEmpty([])
+
   output:
   file 'software_versions_mqc.yaml' into softwareVersionsYaml
 

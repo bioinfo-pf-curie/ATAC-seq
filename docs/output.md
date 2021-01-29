@@ -111,15 +111,17 @@ The results from picard CollectInsertSizeMetrics gives you a quick visualisation
 
 * `insert_size_histogram.pdf`,`insert_size_metrics.txt`: CollectInsertSizeMetrics output files
 
-Here are a few examples of expected fragment size distribution.
+Here are a few examples with expected and unexpected fragment size distribution.  
+From high quality experiments, we should expect to see an enrichment at nucleosome free regions (<100 bp), followed by a periodic distribution corresponding to mono-, di-, tri-, etc. nucleosome.
 
 ![MultiQC - picard CollectInsertSizeMetrics plots](images/insert_size_histogram.png)
 
-Experiments with with a too high ratio of Tn5 transposase concentration to the number of cells (ie. over-transposition) usually leads to an increased background signals and reduced signal-to-noise ratio.
+Experiments with a too high ratio of Tn5 transposase concentration to the number of cells (ie. over-transposition) usually leads to an increased background signals and reduced signal-to-noise ratio.
+In this case, the expected fragment size distribution is the following :
 
 ![MultiQC - picard CollectInsertSizeMetrics plots](images/insert_size_histogram_bias1.png)
 
-On the contrary, size distribution with a bias toward large fragment might have resulted from biased size selection during library preparation.
+On the contrary, size distribution with a bias toward large fragments might have resulted from biased size selection during library preparation.
 
 ![MultiQC - picard CollectInsertSizeMetrics plots](images/insert_size_histogram_bias2.png)
 

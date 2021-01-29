@@ -714,9 +714,7 @@ process readsShifting {
   label 'deeptools'
   label 'medCpu'
   label 'medMem'
-  publishDir path: "${params.outDir}/mapping", mode: 'copy',
-    saveAs: {filename -> if (params.saveAlignedIntermediates) filename
-                         else null}
+  publishDir path: "${params.outDir}/mapping", mode: 'copy'
 
   when: !params.skipShift
 
@@ -825,7 +823,6 @@ process bigWig {
               -o ${prefix}_NFR.bigwig \\
               -p ${task.cpus} \\
               ${effGsize} \\
-	      ${extend} \\
               --maxFragmentLength 100 \\
               --scaleFactor \$sf
 
@@ -833,9 +830,8 @@ process bigWig {
               -o ${prefix}_NBR.bigwig \\
               -p ${task.cpus} \\
               ${effGsize} \\
-	      ${extend} \\
               --minFragmentLength 180 \\
-              --maxFragmentLength 437 \\
+              --maxFragmentLength 473 \\
               --scaleFactor \$sf
   """
 }
@@ -946,7 +942,7 @@ process macs2 {
   file fripScoreHeader from chFripScoreHeaderMacs.collect()
 
   output:
-  file("*.xls") into chMacsOutput
+  file("*.{xls,bed}") into chMacsOutput
   set val(prefix), file("*macs2_peaks.narrowPeak"), val("macs2") into chMacsPeaks,chMacsPeaksbb
   file "*_mqc.tsv" into chMacsMqc
   file("v_macs2.txt") into chMacsVersion

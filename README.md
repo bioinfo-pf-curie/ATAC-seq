@@ -12,13 +12,12 @@
 
 This pipeline was built for **ATAC-seq** data analysis. It provides a detailed quality controls of all samples as well as a first downstream analysis including peak calling
 and annotation.  
-It was developed with two modes. The first one (by default) allows to detect open genomic regions and works at the DNA fragment level.
-The second one (`--tn5sites`) was defined to precisely detect transposase insertion sites by centering the analysis on the 5' end of each R1/R2 reads.
-It is mainly recommanded for motif discovery or footprinting analysis.
+It was developed with two modes. The first one (by default) allows to detect open genomic regions and extends reads to DNA fragment.
+The second one (`--tn5sites`) was defined to precisely detect transposase Tn5 insertion sites by centering the analysis on the 5' end of each R1/R2 reads.
+The later is mainly recommanded for motif discovery or footprinting analysis.
 
 The pipeline is built using [Nextflow](https://www.nextflow.io), a workflow tool to run tasks across multiple compute infrastructures in a very portable manner. 
 It comes with containers making installation trivial and results highly reproducible.
-The current workflow was initiated from the [nf-core ATAC-seq pipeline](https://github.com/nf-core/chipseq). See the nf-core project from details on [guidelines](https://nf-co.re/).
 
 ### Pipeline Summary
 

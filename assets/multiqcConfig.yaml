@@ -206,8 +206,8 @@ module_order:
       name: 'Bowtie2'
       info: 'alignment of raw sequencing reads on the reference genome.'
    - picard:
-      name: 'Fragment size'
-      info: ' shows nucleosome occupancy. Fragment lengths lower than 100bp usually represent nucleosome free regions. Then, the fragment size distribution is expected to have a clear periodicity related to nucleosome occupancy (mono-, di-, tri-nucleosome, etc.)'
+      name: 'Picard'
+      info: ' shows insert size distribution and duplication level. Fragment lengths lower than 100bp usually represent nucleosome free regions. Then, the fragment size distribution is expected to have a clear periodicity related to nucleosome occupancy (mono-, di-, tri-nucleosome, etc.). Duplicates level reflects the library complexity and is expected to be as low as possible. ATAC-seq experiments with less than 25% of duplicates are usually of good quality.'
    - preseq:
       name: 'Sequencing Complexity'
       info: 'estimates the complexity of a library, showing how many additional unique reads are sequenced for increasing total read count. A shallow curve indicates complexity saturation. The dashed line shows a perfectly complex library where total reads = unique reads. The presented graph shows extrapolated curves up to 200M sequencing reads.'
@@ -267,15 +267,14 @@ remove_sections :
   - fastqc_overrepresented_sequences
   - fastqc_status_checks
   - plotFingerprint
-  - picard-markduplicates
+
 
 fn_ignore_files:
   - '*FRiP*'
 
 fn_clean_exts:
-    - '_bwa.log'
+    - '_bwa.mqc'
     - '_bowtie2.log'
-    - 'Log.final.out'
     - '_sorted.bam'
     - '_peaks.count_mqc'
 

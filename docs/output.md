@@ -63,10 +63,11 @@ From our experience, an ATAC-seq sample with less than 25% of duplicates is usua
 
 ![MultiQC - Picard MarkDup stats plot](images/picard_deduplication.png)
 
-### Alignment cleaning
+### Alignment filtering
 
 Before running any downstream analysis, aligned reads are filtered as follow:
 - Low mapping quality reads are discarded (see `--mapq`).
+- Reads aligned on blacklisted ENCODE regions are discarded (see the genome annotation for details).
 - Duplicates reads are filtered by default. Use `--keepDups` to switch off this filter.
 - Reads aligned to mitochondrial chromosome are filtered. Use `keepMito` to switch off this filter.
 - Singleton reads are discarded and only valid pairs are considered. Use `--keepSingleton` to switch off this filter.

@@ -124,14 +124,19 @@ Available Profiles
 The pipeline can be run on any infrastructure from a list of input files or from a sample plan as follow
 
 #### Run the pipeline on a test dataset
+
 See the conf/test.conf to set your test dataset.
 
 ```
-nextflow run main.nf -profile test,conda
+nextflow run main.nf -profile test,conda --genomeAnnotationPath ANNOTATION_PATH
 
 ```
 
+The `genomeAnnotationPath` is a directory where all annotations data are stored. This annotation path must follow the organisation
+describes in `conf/genomes.config`
+
 #### Run the pipeline from a `sample plan`
+
 ```
 nextflow run main.nf --samplePlan MY_SAMPLE_PLAN --genome 'hg19' --genomeAnnotationPath ANNOTATION_PATH --outdir MY_OUTPUT_DIR
 

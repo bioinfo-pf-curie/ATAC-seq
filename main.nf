@@ -761,7 +761,10 @@ process getFragmentSize {
   label 'medMem'
 
   publishDir path: "${params.outDir}/fragSize/", mode: "copy"
- 
+
+  when:
+  !params.singleEnd 
+
   input:
   set val(prefix), file(filteredBam) from chBamsFragSize
 

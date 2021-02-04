@@ -756,7 +756,7 @@ if (! params.skipShift){
 
 process getFragmentSize {
   tag "${prefix}"
-  label 'samtools'
+  label 'picard'
   label 'lowCpu'
   label 'medMem'
 

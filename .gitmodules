@@ -1,3 +1,4 @@
 [submodule "geniac"]
 	path = geniac
-	url = ssh://gitlab.curie.fr/bioinfo-guidelines/geniac
+  url = ssh://git@gitlab.curie.fr:2222/data-analysis/atac-seq.git
+

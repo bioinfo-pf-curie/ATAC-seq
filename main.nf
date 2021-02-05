@@ -1252,8 +1252,11 @@ process outputDocumentation {
 
 workflow.onComplete {
 
+  /*pipeline_report.html*/
+
   // pipelineReport.html
   def reportFields = [:]
+  reportFields['pipeline'] = workflow.manifest.name
   reportFields['version'] = workflow.manifest.version
   reportFields['runName'] = customRunName ?: workflow.runName
   reportFields['success'] = workflow.success

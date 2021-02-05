@@ -4,3 +4,5 @@ channels:
 dependencies:
   - bioconda::genrich=0.6=hed695b0_0
   - bioconda::bedtools=2.27.1=he513fc3_4
+  - bioconda::samtools=1.9=h10a08f8_12
+

@@ -1235,7 +1235,7 @@ process outputDocumentation {
     label 'python'
     label 'lowCpu'
     label 'lowMem'
-    publishDir "${params.outDir}/pipeline_info", mode: 'copy'
+    publishDir "${params.summaryDir}/", mode: 'copy'
 
     input:
     file output_docs from chOutputDocs

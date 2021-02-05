@@ -1,5 +1,6 @@
 name: bedtobigbed-377
 channels:
+  - conda-forge
   - bioconda
 dependencies:
   - bioconda::ucsc-bedclip=377=h199ee4e_0

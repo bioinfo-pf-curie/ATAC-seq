@@ -1,5 +1,5 @@
-name: deeptools
+name: deeptools-3.2.1
 channels:
   - bioconda
 dependencies:
-  - bioconda::deeptools=3.2.1
+  - bioconda::deeptools=3.2.1=py_0

@@ -1,5 +1,5 @@
-name: fastqc
+name: fastqc-0.11.8
 channels:
   - bioconda
 dependencies:
-  - bioconda::fastqc=0.11.8
+  - bioconda::fastqc=0.11.8=2

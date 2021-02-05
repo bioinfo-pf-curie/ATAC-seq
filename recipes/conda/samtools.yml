@@ -1,5 +1,5 @@
-name: samtools
+name: samtools-1.9
 channels:
   - bioconda
 dependencies:
-  - bioconda::samtools=1.9
+  - bioconda::samtools=1.9=h10a08f8_12

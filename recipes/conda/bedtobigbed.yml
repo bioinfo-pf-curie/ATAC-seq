@@ -1,4 +1,4 @@
-name: bedtobigbed
+name: bedtobigbed-377
 channels:
   - bioconda
 dependencies:

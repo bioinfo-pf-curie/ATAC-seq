@@ -1,5 +1,5 @@
-name: bowtie2
+name: bowtie2-2.3.5
 channels:
   - bioconda
 dependencies:
-  - bioconda::bowtie2=2.3.5
+  - bioconda::bowtie2=2.3.5=py37he513fc3_0

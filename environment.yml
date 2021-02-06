@@ -5,28 +5,28 @@ channels:
   - defaults
 dependencies:
   # Add required software dependencies here
-  - python=3.7.1=hd21baee_1001
+  - python=3.7.9=hffdb5ce_0_cpython
   - conda-forge::pymdown-extensions=7.1=pyh9f0ad1d_0
   - bioconda::fastqc=0.11.8=2
   - bioconda::multiqc=1.9=py_1
   - bioconda::bwa=0.7.17=hed695b0_7
-  - bioconda::samtools=1.9=h10a08f8_12
+  - bioconda::samtools=1.10=h2e538c0_3
   - bioconda::bowtie2=2.3.5.1=py37he513fc3_0
   - bioconda::picard=2.19.0=0
-  - bioconda::preseq=2.0.3=h26b358d_2
-  - bioconda::pysam=0.15.2=py37h1671916_1
+  - bioconda::preseq=2.0.3=hc216eb9_5
+  - bioconda::pysam=0.15.3=py37hbcae180_3
   - bioconda::bedtools=2.27.1=he513fc3_4
   - bioconda::deeptools=3.2.1=py_0
   - bioconda::macs2=2.2.6=py37h516909a_0
   - bioconda::homer=4.10=pl526hc9558a2_0
-  - bioconda::idr=2.0.4.2=py37h97743b1_4
   - bioconda::genrich=0.6=hed695b0_0
-  - bioconda::ucsc-bedclip=377=h199ee4e_0
-  - bioconda::ucsc-bedtobigbed=377=h199ee4e_0
+  - bioconda::ucsc-bedclip=377=h446ed27_1
+  - bioconda::ucsc-bedtobigbed=377=h446ed27_1
 
   # R-packages
-  - r-base=3.4.1=h4fe35fd_8
-  - r-optparse=1.6.0=r341_1
-  - r-ggplot2=3.1.0=r341h6115d3f_0
-  - r-reshape2=1.4.3=r341h9d2a408_2
-  - r-scales=1.0.0=r341h9d2a408_1
+  - r-base=3.6.3=hd23ff56_6
+  - r-optparse=1.6.4=r36h6115d3f_0
+  - r-ggplot2=3.3.2=r36hc72bb7e_1
+  - r-reshape2=1.4.4=r36h0357c0b_1
+  - r-scales=1.1.0=r36h6115d3f_1
+

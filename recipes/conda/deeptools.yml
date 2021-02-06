@@ -1,6 +1,9 @@
 name: deeptools-3.2.1
 channels:
+  - conda-forge
   - bioconda
+  - defaults
 dependencies:
   - bioconda::deeptools=3.2.1=py_0
-  - bioconda::samtools=1.9=h10a08f8_12
+  - bioconda::samtools=1.10=h2e538c0_3
+  

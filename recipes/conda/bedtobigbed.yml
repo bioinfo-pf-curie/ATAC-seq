@@ -2,7 +2,8 @@ name: bedtobigbed-377
 channels:
   - conda-forge
   - bioconda
+  - defaults
 dependencies:
-  - bioconda::ucsc-bedclip=377=h199ee4e_0
-  - bioconda::ucsc-bedtobigbed=377=h199ee4e_0
+  - bioconda::ucsc-bedclip=377=h446ed27_1
+  - bioconda::ucsc-bedtobigbed=377=h446ed27_1
 

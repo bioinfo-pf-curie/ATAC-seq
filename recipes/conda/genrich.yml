@@ -1,8 +1,11 @@
 name: genrich-2.27.1
 channels:
+  - conda-forge
   - bioconda
+  - defaults
 dependencies:
   - bioconda::genrich=0.6=hed695b0_0
   - bioconda::bedtools=2.27.1=he513fc3_4
-  - bioconda::samtools=1.9=h10a08f8_12
+  - bioconda::samtools=1.10=h2e538c0_3
+
 

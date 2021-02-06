@@ -1,5 +1,7 @@
 name: homer-4.10
 channels:
+  - conda-forge
   - bioconda
+  - defaults
 dependencies:
   - bioconda::homer=4.10=pl526hc9558a2_0

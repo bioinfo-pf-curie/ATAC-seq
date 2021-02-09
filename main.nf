@@ -1193,7 +1193,7 @@ process multiqc {
   file metadata from chMetadata.ifEmpty([])
   file multiqcConfig from chMultiqcConfig.ifEmpty([])
   file ('softwareVersions/*') from softwareVersionsYaml.collect().ifEmpty([])
-  //file ('summary/*') from workflowSummaryYaml.collect()
+  file ('summary/*') from workflowSummaryYaml.collect()
   file ('fastqc/*') from chFastqcMqc.collect().ifEmpty([])
   file ('mapping/*') from chMappingMqc.collect().ifEmpty([])
   file ('mapping/*') from chMarkedPicstats.collect().ifEmpty([])

@@ -1298,7 +1298,7 @@ workflow.onComplete {
   outputTxtFile.withWriter { w -> w << reportTxt }
 
   // onComplete file
-  File woc = new File("${params.outDir}/onComplete.txt")
+  File woc = new File("${params.outDir}/workflowOnComplete.txt")
   Map endSummary = [:]
   endSummary['Completed on'] = workflow.complete
   endSummary['Duration']     = workflow.duration

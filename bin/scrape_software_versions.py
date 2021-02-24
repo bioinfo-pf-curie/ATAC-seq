@@ -6,7 +6,7 @@ from os import path
 
 # TODO nf-core: Add additional regexes for new tools in process get_software_versions
 regexes = {
-    'chipseq': ['v_pipeline.txt', r"(\S+)"],
+    'Pipeline': ['v_pipeline.txt', r"(\S+)"],
     'Nextflow': ['v_nextflow.txt', r"(\S+)"],
     'FastQC': ['v_fastqc.txt', r"FastQC v(\S+)"],
     'MultiQC': ['v_multiqc.txt', r"multiqc, version (\S+)"],
@@ -24,7 +24,7 @@ regexes = {
 
 
 results = OrderedDict()
-results['chipseq'] = '<span style="color:#999999;\">N/A</span>'
+results['Pipeline'] = '<span style="color:#999999;\">N/A</span>'
 results['Nextflow'] = '<span style="color:#999999;\">N/A</span>'
 results['FastQC'] = '<span style="color:#999999;\">N/A</span>'
 results['BWA'] = '<span style="color:#999999;\">N/A</span>'

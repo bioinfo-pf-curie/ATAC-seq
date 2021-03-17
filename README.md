@@ -1,4 +1,4 @@
-# ATAC-seq
+B1;5202;0c# ATAC-seq
 
 **Institut Curie - Nextflow ATAC-seq analysis pipeline**
 
@@ -74,6 +74,8 @@ Alignment:
 --saveAlignedIntermediates [bool]  Save all intermediates mapping files. Default: false
 --bwaIndex [file]                  Index for Bwa-mem aligner
 --bowtie2Index [file]              Index for Bowtie2 aligner
+--bwaOpts [str]                    Modify the Bwa-mem mapping parameters
+--bowtie2Opts [str]                Modify the Bowtie2 mapping parameters
 
 Filtering:
 --mapq [int]                       Minimum mapping quality to consider. Default: false

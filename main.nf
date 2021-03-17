@@ -484,7 +484,7 @@ process bwaMem{
   echo \$(bwa 2>&1) &> v_bwa.txt
   bwa mem -t ${task.cpus} \\
            ${index}/${genomeBase} \\
-          -M \\
+          ${params.bwaOpts} \\
           $reads | samtools view -bS - > ${sample}.bam
   ${baseDir}/bin/getBWAstats.sh -i ${sample}.bam > ${sample}_bwa.log
   """
@@ -516,7 +516,7 @@ process bowtie2{
   """
   bowtie2 --version &> v_bowtie2.txt
   bowtie2 -p ${task.cpus} \\
-          --very-sensitive --end-to-end --reorder \\
+          ${params.bowtie2Opts} \\
            -x ${index}/${genomeBase} \\
           $readCommand > ${sample}.bam 2> ${sample}_bowtie2.log
   """

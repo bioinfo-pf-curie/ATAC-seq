@@ -594,8 +594,7 @@ process markDuplicates{
     saveAs: {filename ->
              if (!filename.endsWith(".bam") && !filename.endsWith(".bam.bai") && params.saveAlignedIntermediates ) "stats/$filename"
              else if ( (filename.endsWith(".bam") || (filename.endsWith(".bam.bai"))) && params.saveAlignedIntermediates ) filename
-             else null
-            }
+             else null}
 
   input:
   set val(prefix), file(sortedBams) from chSortBams
@@ -651,7 +650,7 @@ process preseq {
   defectMode = params.preseqDefect ? '-D' : ''
   """
   preseq &> v_preseq.txt
-  preseq lc_extrap -v $defectMode -output ${prefix}.ccurve.txt -bam ${bam[0]}
+  preseq lc_extrap -v $defectMode -output ${prefix}.ccurve.txt -bam ${bam[0]} -e  300e+06
   """
 }
 
@@ -1222,8 +1221,9 @@ process multiqc {
   designOpts= params.design ? "-d ${params.design}" : ""
   modules_list = "-m custom_content -m fastqc -m bowtie2 -m preseq -m picard -m deeptools -m macs2 -m homer"
   """
-  ${baseDir}/bin/stats2multiqc.sh -s ${splan} ${designOpts} -a ${params.aligner} -m ${params.mitoName} ${isPE}
-  ${baseDir}/bin/mqc_header.py --splan ${splan} --name "ATAC-seq" --version ${workflow.manifest.version} ${metadataOpts} > multiqc-config-header.yaml
+  stats2multiqc.sh -s ${splan} ${designOpts} -a ${params.aligner} -m ${params.mitoName} ${isPE}
+  medianReadNb="\$(sort -t, -k3,3n mqc.stats | awk -F, '{a[i++]=\$3;} END{x=int((i+1)/2); if (x<(i+1)/2) printf "%.0f", (a[x-1]+a[x])/2; else printf "%.0f",a[x-1];}')"
+  mqc_header.py --splan ${splan} --name "ATAC-seq" --version ${workflow.manifest.version} ${metadataOpts} --nbreads \${medianReadNb} > multiqc-config-header.yaml
   multiqc . -f $rtitle $rfilename -c multiqc-config-header.yaml -c $multiqcConfig $modules_list
   """
 }

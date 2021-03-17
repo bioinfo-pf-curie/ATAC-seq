@@ -799,7 +799,7 @@ process bigWig {
 
   input:
   set val(prefix), file(filteredBams) from chBamsBigWig
-  file(BLbed) from chBlacklistBigWig.collect()
+  file(BLbed) from chBlacklistBigWig.collect().ifEmpty([])
 
   output:
   set val(prefix), file('*norm.bigwig') into chBigWig
@@ -827,6 +827,7 @@ process bigWig {
   bamCoverage -b ${filteredBams[0]} \\
               -o ${prefix}_NFR.bigwig \\
               -p ${task.cpus} \\
+              ${blacklistParams} \\
               ${effGsize} \\
               --maxFragmentLength 100 \\
               --scaleFactor \$sf
@@ -834,6 +835,7 @@ process bigWig {
   bamCoverage -b ${filteredBams[0]} \\
               -o ${prefix}_NBR.bigwig \\
               -p ${task.cpus} \\
+              ${blacklistParams} \\
               ${effGsize} \\
               --minFragmentLength 180 \\
               --maxFragmentLength 473 \\

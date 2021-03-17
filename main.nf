@@ -65,6 +65,7 @@ def helpMessage() {
   --keepSingleton [bool]             Keep unpaired reads. Default: false
   --keepMito [bool]                  Do not filter reads from mitochrondrial chromosomal. Default: false
   --blacklist [file]                 Path to black list regions (.bed).
+  --ignoreBlacklist [bool]           Do not filter blacklisted regions. Default: false
 
   Calling:
   --caller [str]                     Peak caller to use ['macs2','genrich']. Several tools can be specified (comma separated). Default: 'macs2'
@@ -212,7 +213,7 @@ if (params.geneBed) {
 }
 
 params.blacklist = genomeRef ? params.genomes[ genomeRef ].blacklist ?: false : false
-if (params.blacklist) { 
+if (params.blacklist && !params.ignoreBlacklist) { 
   Channel
     .fromPath(params.blacklist, checkIfExists: true)
     .into {chBlacklistBigWig; chBlacklistCorrelation} 
@@ -286,7 +287,7 @@ summary['Annotation']   = params.genomeAnnotationPath
 summary['Fasta Ref']    = params.fasta
 summary['GTF']          = params.gtf
 summary['Genes']        = params.geneBed
-if (params.blacklist)  summary['Blacklist '] = params.blacklist
+if (params.blacklist && !params.ignoreBlacklist)  summary['Blacklist '] = params.blacklist
 summary['Data Type']    = params.singleEnd ? 'Single-End' : 'Paired-End'
 if (params.singleEnd)  summary['Fragment Size '] = params.fragmentSize
 summary['Aligner'] = params.aligner
@@ -808,7 +809,7 @@ process bigWig {
 
   script:
   extend = params.tn5sites ? "" : params.singleEnd && params.fragmentSize > 0 ? "--extendReads ${params.fragmentSize}" : "--extendReads"
-  blacklistParams = params.blacklist ? "--blackListFileName ${BLbed}" : ""
+  blacklistParams = params.blacklist && !params.ignoreBlacklist ? "--blackListFileName ${BLbed}" : ""
   effGsize = params.effGenomeSize ? "--effectiveGenomeSize ${params.effGenomeSize}" : ""
   """
   bamCoverage --version &> v_deeptools.txt

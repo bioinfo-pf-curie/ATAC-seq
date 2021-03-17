@@ -83,7 +83,8 @@ Filtering:
 --keepSingleton [bool]             Keep unpaired reads. Default: false
 --keepMito [bool]                  Do not filter reads from mitochrondrial chromosomal. Default: false
 --blacklist [file]                 Path to black list regions (.bed).
-
+--ignoreBlacklist [bool]           Do not filter blacklisted regions. Default: false
+  
 Calling:
 --caller [str]                     Peak caller to use ['macs2','genrich']. Several tools can be specified (comma separated). Default: 'macs2'
 --tn5sites [bool]                  Focus the analysis on Tn5 insertion sites (ie. work at the reads level and not at the fragment one). Default: false

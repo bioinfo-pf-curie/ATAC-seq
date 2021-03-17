@@ -1128,8 +1128,8 @@ process peakQC{
 
 process getSoftwareVersions{
   label 'python'
-  label 'lowCpu'
-  label 'lowMem'
+  label 'minCpu'
+  label 'minMem'
   publishDir path: "${params.outDir}/softwareVersions", mode: "copy"
 
   when:

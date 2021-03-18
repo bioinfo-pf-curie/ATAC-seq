@@ -670,7 +670,7 @@ process bamFiltering {
   publishDir path: "${params.outDir}/mapping", mode: 'copy',
     saveAs: {filename ->
              if (!filename.endsWith(".bam") && (!filename.endsWith(".bam.bai"))) "stats/$filename"
-             else if (filename.endsWith("_filtered.bam") || (filename.endsWith("_filtered.bam.bai"))) filename
+             else if ((filename.endsWith("_filtered.bam") || (filename.endsWith("_filtered.bam.bai"))) && (params.saveAlignedIntermediates || params.skipShift)) filename
              else null}
 
   input:

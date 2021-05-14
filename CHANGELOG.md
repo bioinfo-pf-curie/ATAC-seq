@@ -7,6 +7,7 @@ NEW FEATURES
 
 SIGNIFICANT USER-VISIBLE CHANGES
 
+  - Fix environment issue with tbb and bowtie2
   - Fix a limit in preseq graphical representation in MultiQC and add the median number of reads
 
 ***********************************

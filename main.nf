@@ -951,6 +951,7 @@ process macs2 {
   output:
   file("*.{xls,bed}") into chMacsOutput
   set val(prefix), file("*macs2_peaks.narrowPeak"), val("macs2") into chMacsPeaks,chMacsPeaksbb
+  set val(prefix), file("*macs2_summits*") into chMacs2Summits
   file "*_mqc.tsv" into chMacsMqc
   file("v_macs2.txt") into chMacsVersion
   file("v_bedtools.txt") into chMacsBedtoolsVersion

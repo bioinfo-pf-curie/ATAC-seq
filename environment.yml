@@ -12,6 +12,7 @@ dependencies:
   - bioconda::bwa=0.7.17=hed695b0_7
   - bioconda::samtools=1.10=h2e538c0_3
   - bioconda::bowtie2=2.3.5.1=py37he513fc3_0
+  - conda-forge::tbb=2020.2=hff7bd54_0
   - bioconda::picard=2.19.0=0
   - bioconda::preseq=2.0.3=hc216eb9_5
   - bioconda::pysam=0.15.3=py37hbcae180_3

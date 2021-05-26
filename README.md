@@ -1,4 +1,4 @@
-B1;5202;0c# ATAC-seq
+# ATAC-seq
 
 **Institut Curie - Nextflow ATAC-seq analysis pipeline**
 

@@ -1,0 +1,23 @@
+Bootstrap: docker
+From: conda/miniconda3-centos7
+
+%labels
+    gitUrl ssh://git@gitlab.curie.fr:2222/data-analysis/atac-seq.git
+    gitCommit be7438449678fae2a43874ac6ec57616eaa801f9 / devel
+
+%environment
+    PATH=/usr/local/envs/r-atac/bin:$PATH
+    LC_ALL=en_US.utf-8
+    LANG=en_US.utf-8
+
+# real path from baseDir: r.yml
+%files
+    r.yml /opt/r.yml
+
+%post
+    yum install -y which   \
+    && yum clean all \
+    && conda env create -f /opt/r.yml \
+    && echo "source activate r-atac" > ~/.bashrc \
+    && conda clean -a
+

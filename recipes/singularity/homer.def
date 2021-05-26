@@ -1,0 +1,23 @@
+Bootstrap: docker
+From: conda/miniconda3-centos7
+
+%labels
+    gitUrl ssh://git@gitlab.curie.fr:2222/data-analysis/atac-seq.git
+    gitCommit be7438449678fae2a43874ac6ec57616eaa801f9 / devel
+
+%environment
+    PATH=/usr/local/envs/homer-4.10/bin:$PATH
+    LC_ALL=en_US.utf-8
+    LANG=en_US.utf-8
+
+# real path from baseDir: homer.yml
+%files
+    homer.yml /opt/homer.yml
+
+%post
+    yum install -y which   \
+    && yum clean all \
+    && conda env create -f /opt/homer.yml \
+    && echo "source activate homer-4.10" > ~/.bashrc \
+    && conda clean -a
+

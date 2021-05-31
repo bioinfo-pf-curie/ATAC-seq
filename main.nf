@@ -862,7 +862,7 @@ process deepToolsComputeMatrix{
   file geneBed from chGeneBedDeeptools.collect()
 
   output:
-  file("*.{gz,pdf}") into chDeeptoolsSingle
+  file("*.{gz,pdf,png}") into chDeeptoolsSingle
   file("*corrected.tab") into chDeeptoolsSingleMqc
 
   script:
@@ -882,6 +882,8 @@ process deepToolsComputeMatrix{
               --outFileNameData ${prefix}.plotProfile.tab
   
   sed -e 's/.0\t/\t/g' -e 's/tick/TSS/' ${prefix}.plotProfile.tab | sed -e 's@.0\$@@g' > ${prefix}.plotProfile_corrected.tab
+
+  plotHeatmap -m ${prefix}_matrix.mat.gz -out ${prefix}_plotHeatmap.png
   """
 }
 

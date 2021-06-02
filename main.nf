@@ -854,16 +854,16 @@ process deepToolsComputeMatrix{
   label 'medMem'
   publishDir "${params.outDir}/deepTools/computeMatrix", mode: "copy"
 
-  when:
-  !params.skipDeepTools
-
   input:
   set val(prefix), file(bigwig) from chBigWigNFR.concat(chBigWigNBR)
   file geneBed from chGeneBedDeeptools.collect()
 
   output:
-  file("*.{gz,pdf,png}") into chDeeptoolsSingle
-  file("*corrected.tab") into chDeeptoolsSingleMqc
+  file("*.{gz,pdf,png}") optional true into chDeeptoolsSingle
+  file("*corrected.tab") optional true into chDeeptoolsSingleMqc
+
+  when:
+  !params.skipDeepTools 
 
   script:
   effGsize = params.effGenomeSize ? "--effectiveGenomeSize ${params.effGenomeSize}" : ""
@@ -875,7 +875,9 @@ process deepToolsComputeMatrix{
                 -o ${prefix}_matrix.mat.gz \\
                 --outFileNameMatrix ${prefix}.computeMatrix.vals.mat.gz \\
                 -b 1000 -a 1000 --skipZeros \\
-                -p ${task.cpus}
+                -p ${task.cpus} --sortRegions no
+
+  if [ `zcat ${prefix}_matrix.mat.gz | wc -l` -ge "2" ];then
 
   plotProfile -m ${prefix}_matrix.mat.gz \\
               -o ${prefix}_profile.pdf \\
@@ -883,7 +885,7 @@ process deepToolsComputeMatrix{
   
   sed -e 's/.0\t/\t/g' -e 's/tick/TSS/' ${prefix}.plotProfile.tab | sed -e 's@.0\$@@g' > ${prefix}.plotProfile_corrected.tab
 
-  plotHeatmap -m ${prefix}_matrix.mat.gz -out ${prefix}_plotHeatmap.png
+  plotHeatmap -m ${prefix}_matrix.mat.gz -out ${prefix}_plotHeatmap.png ;fi
   """
 }
 

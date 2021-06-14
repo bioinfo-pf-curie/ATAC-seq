@@ -1,9 +1,17 @@
+version-1.0.3
+
+NEW FEATURES
+
+  - add Bombyx Mori V4 annotation
+
+**********************************
 version-1.0.2
 
 NEW FEATURES
 
   - add dmelr6.28 genome is now available
-  - add plotHeatmap
+  - add plotHeatmap function
+
 ***********************************
 version-1.0.1
 

@@ -3,7 +3,7 @@ version-1.0.2
 NEW FEATURES
 
   - add dmelr6.28 genome is now available
-
+  - add plotHeatmap
 ***********************************
 version-1.0.1
 

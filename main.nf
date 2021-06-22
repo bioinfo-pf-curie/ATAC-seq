@@ -877,15 +877,17 @@ process deepToolsComputeMatrix{
                 -b 1000 -a 1000 --skipZeros \\
                 -p ${task.cpus} --sortRegions no
 
-  if [ `zcat ${prefix}_matrix.mat.gz | wc -l` -ge "2" ];then
-
-  plotProfile -m ${prefix}_matrix.mat.gz \\
+  ## if matrix is not empty
+  if [ `zcat ${prefix}_matrix.mat.gz | wc -l` -ge "2" ]
+  then
+    plotProfile -m ${prefix}_matrix.mat.gz \\
               -o ${prefix}_profile.pdf \\
               --outFileNameData ${prefix}.plotProfile.tab
   
-  sed -e 's/.0\t/\t/g' -e 's/tick/TSS/' ${prefix}.plotProfile.tab | sed -e 's@.0\$@@g' > ${prefix}.plotProfile_corrected.tab
+    sed -e 's/.0\t/\t/g' -e 's/tick/TSS/' ${prefix}.plotProfile.tab | sed -e 's@.0\$@@g' > ${prefix}.plotProfile_corrected.tab
 
-  plotHeatmap -m ${prefix}_matrix.mat.gz -out ${prefix}_plotHeatmap.png ;fi
+    plotHeatmap -m ${prefix}_matrix.mat.gz -out ${prefix}_plotHeatmap.png
+  fi
   """
 }
 

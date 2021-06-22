@@ -7,6 +7,10 @@ NEW FEATURES
 **********************************
 version-1.0.2
 
+BUG FIXES
+
+  - Fix bug when no NBR fragments are found
+
 NEW FEATURES
 
   - add dmelr6.28 genome is now available

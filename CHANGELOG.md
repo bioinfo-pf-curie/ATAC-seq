@@ -1,3 +1,22 @@
+version-1.0.3
+
+NEW FEATURES
+
+  - add Bombyx Mori V4 annotation
+
+**********************************
+version-1.0.2
+
+BUG FIXES
+
+  - Fix bug when no NBR fragments are found
+
+NEW FEATURES
+
+  - add dmelr6.28 genome is now available
+  - add plotHeatmap function
+
+***********************************
 version-1.0.1
 
 NEW FEATURES

@@ -608,7 +608,7 @@ process markDuplicates{
   set val(prefix), file(sortedBams) from chSortBams
 
   output:
-  set val(prefix), file("*marked.{bam,bam.bai}") into chMarkedBams, chMarkedBamsFilt, chMarkedPreseq2
+  set val(prefix), file("*marked.{bam,bam.bai}") into chMarkedBams, chMarkedBamsFilt, chMarkedPreseq
   set val(prefix), file("*marked.flagstat") into chMarkedFlagstat
   file "*marked.{idxstats,stats}" into chMarkedStats
   file "*metrics.txt" into chMarkedPicstats
@@ -631,10 +631,6 @@ process markDuplicates{
   samtools stats ${prefix}_marked.bam > ${prefix}_marked.stats
   """
 }
-
-chMarkedPreseq2
-        .dump(tag : 'preseq')
-        .set { chMarkedPreseq }
 
 /*
  * Preseq (before alignment filtering)

@@ -346,7 +346,6 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-         //.into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
          .into { rawReadsFastqc; rawReads; planMultiQC }
 
    }else if (!params.singleEnd && !params.inputBam){
@@ -356,7 +355,6 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2]), file(row[3])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-         //.into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
          .into { rawReadsFastqc; rawReads; planMultiQC }
 
    }else{
@@ -371,7 +369,6 @@ if(params.samplePlan){
        params.reads=false
 
        Channel.empty().into{ rawReadsFastqc; rawReads }
-       //Channel.empty().into{ rawReadsFastqc; rawReadsBWA; rawReadsBt2 }
   }
 } else if(params.readPaths){
     if(params.singleEnd){
@@ -381,7 +378,6 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-            //.into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
             .into { rawReadsFastqc; rawReads; planMultiQC }
 
     } else {
@@ -391,8 +387,6 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-            //.into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
-            .dump(tag : "rawReads")
             .into { rawReadsFastqc; rawReads; planMultiQC }
     }
 } else {
@@ -401,7 +395,6 @@ if(params.samplePlan){
         .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nNB: Path requires at least one * wildcard!\nIf this is single-end data, please specify --singleEnd on the command line." }
         //.join(chDesignCsv2)
         //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-        //.into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
         .into { rawReadsFastqc; rawReads; planMultiQC }
 }
 
@@ -524,7 +517,7 @@ process trimgalore {
       trim_galore --cores ${task.cpus} --paired --fastqc --gzip $cR1 $cR2 $tpcR1 $tpcR2 $nextSeq ${prefix}_1.fastq.gz ${prefix}_2.fastq.gz
       """
     }
-}
+  }
 }
 
 
@@ -548,7 +541,6 @@ process bwaMem{
   params.aligner == "bwa-mem" && !params.inputBam
 
   input:
-  //set val(sample), file(reads), file(index), val(genomeBase) from rawReadsBWA.combine(chBwaIndex)
   set val(sample), file(reads), file(index), val(genomeBase) from trimmedReadsBWA.combine(chBwaIndex)
 
   output:
@@ -581,7 +573,6 @@ process bowtie2{
   params.aligner == "bowtie2" && !params.inputBam
 
   input:
-  //set val(sample), file(reads), file(index), val(genomeBase) from rawReadsBt2.combine(chBt2Index)
   set val(sample), file(reads), file(index), val(genomeBase) from trimmedReadsBt2.combine(chBt2Index)
 
   output:

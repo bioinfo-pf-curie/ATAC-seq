@@ -28,3 +28,14 @@ If you still have an issue with running the pipeline then feel free to contact u
 Have a look at the [pipeline website](https://github.com/nf-core/mypipeline) to find out how.
 
 If you have problems that are related to Nextflow and not our pipeline then check out the [Nextflow gitter channel](https://gitter.im/nextflow-io/nextflow) or the [google group](https://groups.google.com/forum/#!forum/nextflow).
+
+## starting analysis require them to contain read sequences
+Some tools may remove read sequences from your bam files (for example the alignmentSieve tools from the deeptools suite). Such bams will bring the pipeline to fail even if your data were already aligned. In fact the preseq process require read sequences to evaluate your library complexity.
+
+In the case of missing sequences in your aligned bam file, you will get the following error
+
+```
+BAM_INPUT
+preseq: smithlab_cpp//SAM.cpp:181: void apply_CIGAR(const string&, const string&, const string&, std::__cxx11::string&, std::__cxx11::string&): Assertion `i == seq.length()' failed. (core dumped)
+```
+

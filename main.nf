@@ -60,10 +60,6 @@ def helpMessage() {
   --bowtie2Opts [str]                Modify the Bowtie2 mapping parameters
 
   Trimming:
-  --clipR1 [int]                 Instructs Trim Galore to remove bp from the 5' end of read 1 (or single-end reads) (Default: 0)
-  --clipR2 [int]                 Instructs Trim Galore to remove bp from the 5' end of read 2 (paired-end reads only) (Default: 0)
-  --threePrimeClipR1 [int]     Instructs Trim Galore to remove bp from the 3' end of read 1 AFTER adapter/quality trimming has been performed (Default: 0)
-  --threePrimeClipR2 [int]     Instructs Trim Galore to remove bp from the 3' end of read 2 AFTER adapter/quality trimming has been performed (Default: 0)
   --trimNextseq [int]            Instructs Trim Galore to apply the --nextseq=X option, to trim based on quality after removing poly-G tails (Default: 0)
   --skipTrimming [bool]          Skip the adapter trimming step (Default: false)
   --saveTrimmed [bool]           Save the trimmed FastQ files in the results directory (Default: false)
@@ -497,24 +493,19 @@ process trimgalore {
   tuple val(prefix), path('*.fq.gz') into trimmedReadsBWA,trimmedReadsBt2
 
   script:
-  // Added soft-links to original fastqs for consistent naming in MultiQC
-    cR1 = params.clipR1 > 0 ? "--clipR1 ${params.clipR1}" : ''
-    cR2 = params.clipR2 > 0 ? "--clipR2 ${params.clipR2}" : ''
-    tpcR1 = params.threePrimeClipR1 > 0 ? "--threePrimeClipR1 ${params.threePrimeClipR1}" : ''
-    tpcR2 = params.threePrimeClipR2 > 0 ? "--threePrimeClipR2 ${params.threePrimeClipR2}" : ''
     nextSeq = params.trimNextseq > 0 ? "--nextseq ${params.trimNextseq}" : ''
 
   // Added soft-links to original fastqs for consistent naming in MultiQC
     if (params.singleEnd) {
       """
       [ ! -f  ${prefix}.fastq.gz ] && ln -s ${reads} ${prefix}.fastq.gz
-      trim_galore --cores ${task.cpus} --fastqc --gzip $cR1 $tpcR1 $nextSeq ${prefix}.fastq.gz
+      trim_galore --cores ${task.cpus} --fastqc --gzip 0 0 $nextSeq ${prefix}.fastq.gz
       """
     } else {
       """
       [ ! -f  ${prefix}_1.fastq.gz ] && ln -s ${reads[0]} ${prefix}_1.fastq.gz
       [ ! -f  ${prefix}_2.fastq.gz ] && ln -s ${reads[1]} ${prefix}_2.fastq.gz
-      trim_galore --cores ${task.cpus} --paired --fastqc --gzip $cR1 $cR2 $tpcR1 $tpcR2 $nextSeq ${prefix}_1.fastq.gz ${prefix}_2.fastq.gz
+      trim_galore --cores ${task.cpus} --paired --fastqc --gzip 0 0 0 0 $nextSeq ${prefix}_1.fastq.gz ${prefix}_2.fastq.gz
       """
     }
   }

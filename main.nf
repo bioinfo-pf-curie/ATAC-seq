@@ -351,10 +351,13 @@ if(params.samplePlan){
          .from(file("${params.samplePlan}"))
          .splitCsv(header: false)
          .map{ row -> [ row[0], [file(row[2])]]}
+         .dump(tag: 'alignedreads')
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-         .set { chAlignReads; planMultiQC }
+         .into { chAlignReads; planMultiQC }
    params.reads=false
+
+        Channel.empty().into{ rawReadsFastqc; rawReadsBWA; rawReadsBt2 }
   }
 } else if(params.readPaths){
     if(params.singleEnd){
@@ -525,6 +528,7 @@ process bowtie2{
   """
 }
 
+if(!params.inputBam){
 if (params.aligner == "bowtie2"){
   chAlignReads = chAlignReadsBowtie2
   chMappingMqc = chBowtie2Mqc
@@ -534,6 +538,7 @@ if (params.aligner == "bowtie2"){
 } else if (params.aligner == "star"){
   chAlignReads = chAlignReadsStar
   chMappingMqc = chStarMqc
+}
 }
 
 if (params.inputBam){
@@ -603,7 +608,7 @@ process markDuplicates{
   set val(prefix), file(sortedBams) from chSortBams
 
   output:
-  set val(prefix), file("*marked.{bam,bam.bai}") into chMarkedBams, chMarkedBamsFilt, chMarkedPreseq
+  set val(prefix), file("*marked.{bam,bam.bai}") into chMarkedBams, chMarkedBamsFilt, chMarkedPreseq2
   set val(prefix), file("*marked.flagstat") into chMarkedFlagstat
   file "*marked.{idxstats,stats}" into chMarkedStats
   file "*metrics.txt" into chMarkedPicstats
@@ -627,6 +632,9 @@ process markDuplicates{
   """
 }
 
+chMarkedPreseq2
+        .dump(tag : 'preseq')
+        .set { chMarkedPreseq }
 
 /*
  * Preseq (before alignment filtering)
@@ -1197,7 +1205,7 @@ process multiqc {
   publishDir "${params.outDir}/MultiQC", mode: 'copy'
 
   when:
-  !params.skipMultiQC
+  !params.skipMultiQC && !params.inputBam
 
   input:
   file (splan) from chSplan.collect()

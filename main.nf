@@ -1022,7 +1022,7 @@ process macs2 {
   file fripScoreHeader from chFripScoreHeaderMacs.collect()
 
   output:
-  file("*.{xls,bed}") into chMacsOutput
+  file("*macs2*.{xls,bed}") into chMacsOutput
   set val(prefix), file("*macs2_peaks.narrowPeak"), val("macs2") into chMacsPeaks,chMacsPeaksbb
   set val(prefix), file("*macs2_summits*") into chMacs2Summits
   file "*_mqc.tsv" into chMacsMqc

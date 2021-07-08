@@ -499,13 +499,13 @@ process trimgalore {
     if (params.singleEnd) {
       """
       [ ! -f  ${prefix}.fastq.gz ] && ln -s ${reads} ${prefix}.fastq.gz
-      trim_galore --cores ${task.cpus} --fastqc --gzip 0 0 $nextSeq ${prefix}.fastq.gz
+      trim_galore --cores ${task.cpus} --fastqc --gzip $nextSeq ${prefix}.fastq.gz
       """
     } else {
       """
       [ ! -f  ${prefix}_1.fastq.gz ] && ln -s ${reads[0]} ${prefix}_1.fastq.gz
       [ ! -f  ${prefix}_2.fastq.gz ] && ln -s ${reads[1]} ${prefix}_2.fastq.gz
-      trim_galore --cores ${task.cpus} --paired --fastqc --gzip 0 0 0 0 $nextSeq ${prefix}_1.fastq.gz ${prefix}_2.fastq.gz
+      trim_galore --cores ${task.cpus} --paired --fastqc --gzip $nextSeq ${prefix}_1.fastq.gz ${prefix}_2.fastq.gz
       """
     }
   }

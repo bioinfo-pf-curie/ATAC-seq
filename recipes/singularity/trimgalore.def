@@ -6,18 +6,18 @@ From: conda/miniconda3-centos7
     gitCommit 083a87393264c306352457d9271639f4fa43da06 / devel
 
 %environment
-    PATH=/usr/local/envs/fastqc-0.11.8/bin:$PATH
+    PATH=/usr/local/envs/trim-galore-0.6.5/bin:$PATH
     LC_ALL=en_US.utf-8
     LANG=en_US.utf-8
 
-# real path from baseDir: fastqc.yml
+# real path from baseDir: trimgalore.yml
 %files
-    fastqc.yml /opt/fastqc.yml
+    trimgalore.yml /opt/trimgalore.yml
 
 %post
     yum install -y which   \
     && yum clean all \
-    && conda env create -f /opt/fastqc.yml \
-    && echo "source activate fastqc-0.11.8" > ~/.bashrc \
+    && conda env create -f /opt/trimgalore.yml \
+    && echo "source activate trim-galore-0.6.5" > ~/.bashrc \
     && conda clean -a
 

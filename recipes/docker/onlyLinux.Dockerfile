@@ -1,7 +1,7 @@
 FROM centos:7
 
-LABEL gitUrl="ssh://git@gitlab.curie.fr:2222/data-analysis/atac-seq.git"
-LABEL gitCommit="be7438449678fae2a43874ac6ec57616eaa801f9 / devel"
+LABEL gitUrl="https://gitlab.curie.fr/data-analysis/atac-seq.git"
+LABEL gitCommit="083a87393264c306352457d9271639f4fa43da06 / devel"
 
 RUN yum install -y which \
 && yum clean all

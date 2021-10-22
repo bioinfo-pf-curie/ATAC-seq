@@ -1,5 +1,9 @@
 version-1.0.3
 
+BUG FIXES
+
+  - Fix bug in clipBed for some genomes
+
 NEW FEATURES
 
   - add Bombyx Mori V4 annotation

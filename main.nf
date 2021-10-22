@@ -1049,7 +1049,7 @@ process narrowPeaksToBigBed {
 
   script:
   """
-  awk -v OFS='\t' '{\$5=\$5>1000?1000:\$5} {print}' ${peakfile} | tail -n +2 | cut -f 1-6 | sort -k 1,1 -k2,2n > ${prefix}_${caller}.tmp
+  awk -v OFS='\t' '{\$5=\$5>1000?1000:\$5} {print}' ${peakfile} | tail -n +2 | cut -f 1-6 | LC_COLLATE=C sort -k 1,1 -k2,2n > ${prefix}_${caller}.tmp
   bedClip -truncate ${prefix}_${caller}.tmp ${chrSizes} ${prefix}_${caller}.bedclip
   bedToBigBed -type=bed6 ${prefix}_${caller}.bedclip ${chrSizes} ${prefix}_${caller}_peaks.narrowPeak.bb
   """

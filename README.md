@@ -69,6 +69,11 @@ Inputs:
 References           If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
 --fasta [file]                     Path to Fasta reference
 
+Trimming:
+--trimNextseq [int]            Instructs Trim Galore to apply the --nextseq=X option, to trim based on quality after removing poly-G tails (Default: 0)
+--skipTrimming [bool]          Skip the adapter trimming step (Default: false)
+--saveTrimmed [bool]           Save the trimmed FastQ files in the results directory (Default: false)
+
 Alignment:
 --aligner [str]                    Alignment tool to use ['bwa-mem', 'star', 'bowtie2']. Default: 'bwa-mem'
 --saveAlignedIntermediates [bool]  Save all intermediates mapping files. Default: false

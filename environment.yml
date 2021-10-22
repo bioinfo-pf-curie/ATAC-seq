@@ -8,6 +8,7 @@ dependencies:
   - python=3.7.9=hffdb5ce_0_cpython
   - conda-forge::pymdown-extensions=7.1=pyh9f0ad1d_0
   - bioconda::fastqc=0.11.8=2
+  - bioconda::trim-galore=0.6.5
   - bioconda::multiqc=1.9=py_1
   - bioconda::bwa=0.7.17=hed695b0_7
   - bioconda::samtools=1.10=h2e538c0_3

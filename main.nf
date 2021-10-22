@@ -59,6 +59,11 @@ def helpMessage() {
   --bwaOpts [str]                    Modify the Bwa-mem mapping parameters
   --bowtie2Opts [str]                Modify the Bowtie2 mapping parameters
 
+  Trimming:
+  --trimNextseq [int]            Instructs Trim Galore to apply the --nextseq=X option, to trim based on quality after removing poly-G tails (Default: 0)
+  --skipTrimming [bool]          Skip the adapter trimming step (Default: false)
+  --saveTrimmed [bool]           Save the trimmed FastQ files in the results directory (Default: false)
+
   Filtering:
   --mapq [int]                       Minimum mapping quality to consider. Default: 0
   --keepDups [bool]                  Do not remove duplicates afer marking. Default: false
@@ -337,7 +342,8 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-         .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
+         .into { rawReadsFastqc; rawReads; planMultiQC }
+
    }else if (!params.singleEnd && !params.inputBam){
       Channel
          .from(file("${params.samplePlan}"))
@@ -345,16 +351,20 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2]), file(row[3])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-         .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
+         .into { rawReadsFastqc; rawReads; planMultiQC }
+
    }else{
       Channel
          .from(file("${params.samplePlan}"))
          .splitCsv(header: false)
          .map{ row -> [ row[0], [file(row[2])]]}
+         .dump(tag: 'alignedreads')
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-         .set { chAlignReads; planMultiQC }
-   params.reads=false
+         .into { chAlignReads; planMultiQC }
+       params.reads=false
+
+       Channel.empty().into{ rawReadsFastqc; rawReads }
   }
 } else if(params.readPaths){
     if(params.singleEnd){
@@ -364,7 +374,8 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-            .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
+            .into { rawReadsFastqc; rawReads; planMultiQC }
+
     } else {
         Channel
             .from(params.readPaths)
@@ -372,7 +383,7 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-            .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
+            .into { rawReadsFastqc; rawReads; planMultiQC }
     }
 } else {
     Channel
@@ -380,7 +391,7 @@ if(params.samplePlan){
         .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nNB: Path requires at least one * wildcard!\nIf this is single-end data, please specify --singleEnd on the command line." }
         //.join(chDesignCsv2)
         //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-        .into { rawReadsFastqc; rawReadsBWA; rawReadsBt2; planMultiQC }
+        .into { rawReadsFastqc; rawReads; planMultiQC }
 }
 
 
@@ -456,6 +467,52 @@ process fastQC{
   """
 }
 
+/********************************************************
+/*
+ * Trim Galore 
+ */
+
+if (params.skipTrimming) {
+    rawReads  
+        .into {trimmedReadsBWA ; trimmedReadsBt2 }
+} else {
+process trimgalore {
+  tag "${prefix}"
+  label 'trimgalore'
+  label 'highCpu'
+  label 'highMem'
+  publishDir "${params.outDir}/trimgalore", mode: 'copy'
+
+  when:
+  !params.inputBam && !params.skipTrimming
+
+  input:
+  set val(prefix), file(reads) from rawReads
+
+  output:
+  tuple val(prefix), path('*.fq.gz') into trimmedReadsBWA,trimmedReadsBt2
+
+  script:
+    nextSeq = params.trimNextseq > 0 ? "--nextseq ${params.trimNextseq}" : ''
+
+  // Added soft-links to original fastqs for consistent naming in MultiQC
+    if (params.singleEnd) {
+      """
+      [ ! -f  ${prefix}.fastq.gz ] && ln -s ${reads} ${prefix}.fastq.gz
+      trim_galore --cores ${task.cpus} --fastqc --gzip $nextSeq ${prefix}.fastq.gz
+      """
+    } else {
+      """
+      [ ! -f  ${prefix}_1.fastq.gz ] && ln -s ${reads[0]} ${prefix}_1.fastq.gz
+      [ ! -f  ${prefix}_2.fastq.gz ] && ln -s ${reads[1]} ${prefix}_2.fastq.gz
+      trim_galore --cores ${task.cpus} --paired --fastqc --gzip $nextSeq ${prefix}_1.fastq.gz ${prefix}_2.fastq.gz
+      """
+    }
+  }
+}
+
+
+
 /*
  * Alignment on reference genome
  */
@@ -475,7 +532,7 @@ process bwaMem{
   params.aligner == "bwa-mem" && !params.inputBam
 
   input:
-  set val(sample), file(reads), file(index), val(genomeBase) from rawReadsBWA.combine(chBwaIndex)
+  set val(sample), file(reads), file(index), val(genomeBase) from trimmedReadsBWA.combine(chBwaIndex)
 
   output:
   set val(sample), file("*.bam") into chAlignReadsBwa
@@ -507,7 +564,7 @@ process bowtie2{
   params.aligner == "bowtie2" && !params.inputBam
 
   input:
-  set val(sample), file(reads), file(index), val(genomeBase) from rawReadsBt2.combine(chBt2Index)
+  set val(sample), file(reads), file(index), val(genomeBase) from trimmedReadsBt2.combine(chBt2Index)
 
   output:
   set val(sample), file("*.bam") into chAlignReadsBowtie2
@@ -525,6 +582,7 @@ process bowtie2{
   """
 }
 
+if(!params.inputBam){
 if (params.aligner == "bowtie2"){
   chAlignReads = chAlignReadsBowtie2
   chMappingMqc = chBowtie2Mqc
@@ -534,6 +592,7 @@ if (params.aligner == "bowtie2"){
 } else if (params.aligner == "star"){
   chAlignReads = chAlignReadsStar
   chMappingMqc = chStarMqc
+}
 }
 
 if (params.inputBam){
@@ -626,7 +685,6 @@ process markDuplicates{
   samtools stats ${prefix}_marked.bam > ${prefix}_marked.stats
   """
 }
-
 
 /*
  * Preseq (before alignment filtering)
@@ -955,7 +1013,7 @@ process macs2 {
   file fripScoreHeader from chFripScoreHeaderMacs.collect()
 
   output:
-  file("*.{xls,bed}") into chMacsOutput
+  file("*macs2*.{xls,bed}") into chMacsOutput
   set val(prefix), file("*macs2_peaks.narrowPeak"), val("macs2") into chMacsPeaks,chMacsPeaksbb
   set val(prefix), file("*macs2_summits*") into chMacs2Summits
   file "*_mqc.tsv" into chMacsMqc
@@ -1197,7 +1255,7 @@ process multiqc {
   publishDir "${params.outDir}/MultiQC", mode: 'copy'
 
   when:
-  !params.skipMultiQC
+  !params.skipMultiQC && !params.inputBam
 
   input:
   file (splan) from chSplan.collect()

@@ -1,3 +1,15 @@
+version-1.0.4
+
+NEW FEATURES
+
+  - start analysis from aligned bam files
+  - trim-galore step was added
+
+BUG FIXES
+
+  - prevent macs 2 to export bam files into bed format in the case of the use of the --tn5sites option
+
+
 version-1.0.3
 
 BUG FIXES

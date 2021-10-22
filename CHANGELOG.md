@@ -2,19 +2,16 @@ version-1.0.4
 
 NEW FEATURES
 
-  - start analysis from aligned bam files
-  - trim-galore step was added
-
-BUG FIXES
-
-  - prevent macs 2 to export bam files into bed format in the case of the use of the --tn5sites option
-
-
-version-1.0.3
+  - Start analysis from aligned bam files
+  - Trim-galore step was added
 
 BUG FIXES
 
   - Fix bug in clipBed for some genomes
+  - Prevent macs2 to export bam files into bed format in the case of the use of the --tn5sites option
+
+***********************************
+version-1.0.3
 
 NEW FEATURES
 

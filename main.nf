@@ -51,6 +51,11 @@ def helpMessage() {
   References           If not specified in the configuration file or you wish to overwrite any of the references given by the --genome field
   --fasta [file]                     Path to Fasta reference
 
+  Trimming:
+  --qualTrim [int]                   Minimum quality value to trim the reads (Default: 20)
+  --twoColour [bool]                 Instructs Trim Galore to apply the --twoColours=X option for NextSeq and NovaSeq sequencers (Default: false)
+  --saveTrimmed [bool]               Save the trimmed FastQ files in the results directory (Default: false)
+
   Alignment:
   --aligner [str]                    Alignment tool to use ['bwa-mem', 'bowtie2']. Default: 'bwa-mem'
   --saveAlignedIntermediates [bool]  Save all intermediates mapping files. Default: false  
@@ -58,11 +63,6 @@ def helpMessage() {
   --bowtie2Index [file]              Index for Bowtie2 aligner
   --bwaOpts [str]                    Modify the Bwa-mem mapping parameters
   --bowtie2Opts [str]                Modify the Bowtie2 mapping parameters
-
-  Trimming:
-  --trimNextseq [int]            Instructs Trim Galore to apply the --nextseq=X option, to trim based on quality after removing poly-G tails (Default: 0)
-  --skipTrimming [bool]          Skip the adapter trimming step (Default: false)
-  --saveTrimmed [bool]           Save the trimmed FastQ files in the results directory (Default: false)
 
   Filtering:
   --mapq [int]                       Minimum mapping quality to consider. Default: 0
@@ -84,6 +84,7 @@ def helpMessage() {
   --effGenomeSize [int]              Effective Genome size
 
   Skip options:        All are false by default
+  --skipTrimming [bool]              Skips TrimGalore. Default: false
   --skipFastqc [bool]                Skips fastQC. Default: false
   --skipPreseq [bool]                Skips preseq QC. Default: false
   --skipShift [bool]                 Skips reads shifting for Tn5 correction (+4/-5bp). Default: false
@@ -342,7 +343,7 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-         .into { rawReadsFastqc; rawReads; planMultiQC }
+         .into { rawReadsFastqc; rawReadsTrimming; rawReads; planMultiQC }
 
    }else if (!params.singleEnd && !params.inputBam){
       Channel
@@ -351,7 +352,7 @@ if(params.samplePlan){
          .map{ row -> [ row[0], [file(row[2]), file(row[3])]] }
          //.join(chDesignCsv2)
          //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-         .into { rawReadsFastqc; rawReads; planMultiQC }
+         .into { rawReadsFastqc; rawReadsTrimming; rawReads; planMultiQC }
 
    }else{
       Channel
@@ -364,7 +365,7 @@ if(params.samplePlan){
          .into { chAlignReads; planMultiQC }
        params.reads=false
 
-       Channel.empty().into{ rawReadsFastqc; rawReads }
+       Channel.empty().into{ rawReadsFastqc; rawReadsTrimming; rawReads }
   }
 } else if(params.readPaths){
     if(params.singleEnd){
@@ -374,7 +375,7 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0])], row[0], row[3], row[4] ] }
-            .into { rawReadsFastqc; rawReads; planMultiQC }
+            .into { rawReadsFastqc; rawReadsTrimming; rawReads; planMultiQC }
 
     } else {
         Channel
@@ -383,7 +384,7 @@ if(params.samplePlan){
             .ifEmpty { exit 1, "params.readPaths was empty - no input files supplied" }
             //.join(chDesignCsv2)
             //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-            .into { rawReadsFastqc; rawReads; planMultiQC }
+            .into { rawReadsFastqc; rawReadsTrimming; rawReads; planMultiQC }
     }
 } else {
     Channel
@@ -391,7 +392,7 @@ if(params.samplePlan){
         .ifEmpty { exit 1, "Cannot find any reads matching: ${params.reads}\nNB: Path needs to be enclosed in quotes!\nNB: Path requires at least one * wildcard!\nIf this is single-end data, please specify --singleEnd on the command line." }
         //.join(chDesignCsv2)
         //.map { row -> [ row[2] + '_' + row[4], [file(row[1][0]),file(row[1][1])], row[0], row[3], row[4] ] }
-        .into { rawReadsFastqc; rawReads; planMultiQC }
+        .into { rawReadsFastqc; rawReadsTrimming; rawReads; planMultiQC }
 }
 
 
@@ -472,10 +473,6 @@ process fastQC{
  * Trim Galore 
  */
 
-if (params.skipTrimming) {
-    rawReads  
-        .into {trimmedReadsBWA ; trimmedReadsBt2 }
-} else {
 process trimgalore {
   tag "${prefix}"
   label 'trimgalore'
@@ -487,31 +484,32 @@ process trimgalore {
   !params.inputBam && !params.skipTrimming
 
   input:
-  set val(prefix), file(reads) from rawReads
+  set val(prefix), file(reads) from rawReadsTrimming
 
   output:
   tuple val(prefix), path('*.fq.gz') into trimmedReadsBWA,trimmedReadsBt2
 
   script:
-    nextSeq = params.trimNextseq > 0 ? "--nextseq ${params.trimNextseq}" : ''
+  qualTrim = params.twoColour ? "--2colour ${params.qualTrim}" : "--quality ${params.qualTrim}"
 
   // Added soft-links to original fastqs for consistent naming in MultiQC
-    if (params.singleEnd) {
-      """
-      [ ! -f  ${prefix}.fastq.gz ] && ln -s ${reads} ${prefix}.fastq.gz
-      trim_galore --cores ${task.cpus} --fastqc --gzip $nextSeq ${prefix}.fastq.gz
-      """
-    } else {
-      """
-      [ ! -f  ${prefix}_1.fastq.gz ] && ln -s ${reads[0]} ${prefix}_1.fastq.gz
-      [ ! -f  ${prefix}_2.fastq.gz ] && ln -s ${reads[1]} ${prefix}_2.fastq.gz
-      trim_galore --cores ${task.cpus} --paired --fastqc --gzip $nextSeq ${prefix}_1.fastq.gz ${prefix}_2.fastq.gz
-      """
-    }
+  if (params.singleEnd) {
+    """
+    [ ! -f  ${prefix}.fastq.gz ] && ln -s ${reads} ${prefix}.fastq.gz
+    trim_galore --cores ${task.cpus} $qualTrim --gzip ${prefix}.fastq.gz
+    """
+  } else {
+    """
+    [ ! -f  ${prefix}_1.fastq.gz ] && ln -s ${reads[0]} ${prefix}_1.fastq.gz
+    [ ! -f  ${prefix}_2.fastq.gz ] && ln -s ${reads[1]} ${prefix}_2.fastq.gz
+    trim_galore --cores ${task.cpus} --paired $qualTrim --gzip ${prefix}_1.fastq.gz ${prefix}_2.fastq.gz
+    """
   }
 }
 
-
+if (params.skipTrimming) {
+  rawReads.into {trimmedReadsBWA ; trimmedReadsBt2 }  
+}
 
 /*
  * Alignment on reference genome
